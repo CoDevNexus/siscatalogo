@@ -100,89 +100,97 @@ $imgbbEnabled = defined('IMGBB_API_KEY') && !empty(IMGBB_API_KEY);
 
                     <!-- Imágenes existentes (modo edición) -->
                     <?php if (!empty($imagenes)): ?>
-                        <p class="small fw-bold text-muted mb-2">Imágenes actuales — arrastra para reordenar, ☆ para
-                            portada:</p>
-                        <div class="row g-2 mb-4" id="gallery-sort">
-                            <?php foreach ($imagenes as $img): ?>
-                                <?php
-                                $imgUrl = ($img['source'] === 'local') ? APP_URL . $img['image_path'] : $img['image_path'];
-                                ?>
-                                <div class="col-4 col-md-2" data-img-id="<?= $img['id'] ?>">
-                                    <div class="gallery-thumb position-relative border rounded-3 overflow-hidden <?= $img['is_primary'] ? 'border-warning border-2' : '' ?>"
-                                        style="height: 80px; cursor: grab;">
-                                        <img src="<?= $imgUrl ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
-                                        <div class="gallery-actions position-absolute bottom-0 start-0 end-0 d-flex justify-content-between p-1"
-                                            style="background:rgba(0,0,0,.5)">
-                                            <button type="button" class="btn btn-xs text-warning p-0 lh-1 btn-set-primary"
-                                                data-img="<?= $img['id'] ?>" title="Portada" style="font-size:13px;">
-                                                <i class="bi <?= $img['is_primary'] ? 'bi-star-fill' : 'bi-star' ?>"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-xs text-danger p-0 lh-1 btn-del-img"
-                                                data-img="<?= $img['id'] ?>" title="Eliminar" style="font-size:13px;">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
+                        <div class="mb-4">
+                            <label class="small fw-bold text-muted mb-2 d-block">Gestión de Galería (Arrastra para
+                                reordenar)</label>
+                            <div class="row g-2" id="gallery-sort">
+                                <?php foreach ($imagenes as $img): ?>
+                                    <?php
+                                    $imgUrl = (\App\Services\ImageService::buildUrl($img['image_path'], $img['source']));
+                                    ?>
+                                    <div class="col-4 col-md-2" data-img-id="<?= $img['id'] ?>">
+                                        <div class="gallery-thumb position-relative border rounded-3 overflow-hidden <?= $img['is_primary'] ? 'border-primary border-2 shadow-sm' : '' ?>"
+                                            style="height: 80px; cursor: grab;">
+                                            <img src="<?= $imgUrl ?>" alt="" style="width:100%;height:100%;object-fit:cover;">
+                                            <div class="gallery-actions position-absolute bottom-0 start-0 end-0 d-flex justify-content-between p-1"
+                                                style="background:rgba(0,0,0,.6)">
+                                                <button type="button" class="btn btn-xs text-warning p-0 lh-1 btn-set-primary"
+                                                    data-img="<?= $img['id'] ?>" title="Marcar como Principal"
+                                                    style="font-size:13px;">
+                                                    <i class="bi <?= $img['is_primary'] ? 'bi-star-fill' : 'bi-star' ?>"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-xs text-danger p-0 lh-1 btn-del-img"
+                                                    data-img="<?= $img['id'] ?>" title="Eliminar" style="font-size:13px;">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                            <?php if ($img['is_primary']): ?>
+                                                <span class="position-absolute top-0 start-0 badge bg-primary m-1"
+                                                    style="font-size:8px;">PRINCIPAL</span>
+                                            <?php endif; ?>
                                         </div>
-                                        <?php if ($img['source'] === 'api'): ?>
-                                            <span class="position-absolute top-0 end-0 badge bg-info m-1"
-                                                style="font-size:9px;">API</span>
-                                        <?php elseif ($img['source'] === 'url'): ?>
-                                            <span class="position-absolute top-0 end-0 badge bg-secondary m-1"
-                                                style="font-size:9px;">URL</span>
-                                        <?php endif; ?>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     <?php endif; ?>
 
-                    <!-- ZONA DRAG & DROP local -->
-                    <div id="drop-zone" class="border border-2 border-dashed rounded-4 text-center py-4 mb-3"
-                        style="cursor:pointer; border-color: #adb5bd !important; transition: all .2s;">
-                        <i class="bi bi-cloud-upload fs-2 text-muted d-block mb-2"></i>
-                        <p class="mb-1 fw-semibold text-secondary">Arrastra imágenes aquí o <span
-                                class="text-primary text-decoration-underline"
-                                onclick="document.getElementById('inputImages').click()">haz clic</span></p>
-                        <p class="text-muted small mb-0">JPG, PNG, WebP — se comprimirán automáticamente a WebP</p>
-                        <input type="file" name="images[]" id="inputImages" class="d-none" multiple accept="image/*">
+                    <!-- OPCIONES DE CARGA -->
+                    <div class="card border-0 bg-light rounded-4 mb-4">
+                        <div class="card-body p-3">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <button type="button"
+                                        class="btn btn-white w-100 border py-3 rounded-4 shadow-sm h-100"
+                                        onclick="document.getElementById('inputImages').click()">
+                                        <i class="bi bi-pc-display fs-4 text-primary d-block mb-1"></i>
+                                        <span class="small fw-bold">Subir Local</span>
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button"
+                                        class="btn btn-white w-100 border py-3 rounded-4 shadow-sm h-100"
+                                        onclick="openImageBrowser()">
+                                        <i class="bi bi-folder2-open fs-4 text-info d-block mb-1"></i>
+                                        <span class="small fw-bold">Explorar Galería</span>
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button"
+                                        class="btn btn-white w-100 border py-3 rounded-4 shadow-sm h-100"
+                                        onclick="document.getElementById('inputImgBB').click()">
+                                        <i class="bi bi-cloud-arrow-up fs-4 text-warning d-block mb-1"></i>
+                                        <span class="small fw-bold">Subir a ImgBB</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Inputs ocultos -->
+                            <input type="file" name="images[]" id="inputImages" class="d-none" multiple
+                                accept="image/*">
+                            <input type="file" name="imgbb_uploads[]" id="inputImgBB" class="d-none" multiple
+                                accept="image/*">
+                        </div>
                     </div>
 
-                    <!-- Previsualización de archivos seleccionados -->
-                    <div id="local-preview" class="row g-2 mb-3"></div>
+                    <!-- Previsualización Unificada -->
+                    <div id="selection-preview" class="row g-2 mb-3"></div>
 
-                    <!-- Separador fuentes -->
-                    <div class="d-flex align-items-center gap-2 my-3">
-                        <hr class="flex-grow-1"><span class="text-muted small">o añadir URL externa</span>
+                    <!-- Contenedor de URLs y Selección de Galería -->
+                    <div id="selected-gallery-container"></div>
+
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <hr class="flex-grow-1"><span class="text-muted small">o añadir URL directa</span>
                         <hr class="flex-grow-1">
                     </div>
-
-                    <!-- URLs Externas (hasta 5) -->
                     <div id="url-container">
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
-                            <input type="url" name="img_urls[]" class="form-control"
+                        <div class="input-group mb-2 shadow-sm">
+                            <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
+                            <input type="url" name="img_urls[]" class="form-control border-start-0"
                                 placeholder="https://ejemplo.com/imagen.jpg">
-                            <button type="button" class="btn btn-outline-secondary btn-add-url" title="Añadir URL"><i
-                                    class="bi bi-plus"></i></button>
+                            <button type="button" class="btn btn-light border btn-add-url" title="Añadir otra URL"><i
+                                    class="bi bi-plus-lg"></i></button>
                         </div>
                     </div>
-
-                    <!-- ImgBB -->
-                    <?php if ($imgbbEnabled): ?>
-                        <div class="d-flex align-items-center gap-2 my-3">
-                            <hr class="flex-grow-1"><span class="text-muted small">o subir a ImgBB (CDN gratuito)</span>
-                            <hr class="flex-grow-1">
-                        </div>
-                        <div class="input-group">
-                            <label class="input-group-text"><i class="bi bi-cloud-arrow-up text-info"></i></label>
-                            <input type="file" name="imgbb_uploads[]" class="form-control" multiple accept="image/*">
-                        </div>
-                    <?php else: ?>
-                        <div class="alert alert-light border small mt-2 mb-0">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Para habilitar ImgBB (CDN gratuito), define <code>IMGBB_API_KEY</code> en
-                            <code>config.php</code>.
-                        </div>
-                    <?php endif; ?>
                 </div>
             </div>
 
@@ -247,14 +255,13 @@ $imgbbEnabled = defined('IMGBB_API_KEY') && !empty(IMGBB_API_KEY);
                         <?php endforeach; ?>
                     </select>
 
-                    <!-- Switch: Tipo de Producto -->
                     <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" role="switch" id="isDigital" name="is_digital"
                             <?= (!empty($producto['is_digital'])) ? 'checked' : '' ?>>
                         <label class="form-check-label fw-semibold" for="isDigital">
                             <i class="bi bi-cloud-download text-primary me-1"></i> Producto Digital
                         </label>
-                        <div class="form-text">Activa el campo de archivo descargable y oculta precio por docena.</div>
+                        <div class="form-text">Si es digital, ocultará precio por docena.</div>
                     </div>
                 </div>
             </div>
@@ -296,59 +303,213 @@ $imgbbEnabled = defined('IMGBB_API_KEY') && !empty(IMGBB_API_KEY);
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 
 <script>
-    // ===== DRAG & DROP Y PREVISUALIZACIÓN =====
-    const dropZone = document.getElementById('drop-zone');
-    const inputImages = document.getElementById('inputImages');
-    const previewGrid = document.getElementById('local-preview');
+    // ===== ESTADO GLOBAL =====
     const MAX_IMAGES = 5;
-    let selectedFiles = [];
+    let selectedFiles = []; // Para subida local
+    let imgbbFiles = [];    // Para subida ImgBB
+    let reusedImages = [];  // Para imágenes de la galería existente
+    let imgBrowserModal = null; // Se inicializará luego
 
-    function addFilesToPreview(files) {
-        Array.from(files).forEach(file => {
-            if (selectedFiles.length >= MAX_IMAGES) return;
-            if (!file.type.startsWith('image/')) return;
-            selectedFiles.push(file);
+    const previewGrid = document.getElementById('selection-preview');
+    const galleryContainer = document.getElementById('selected-gallery-container');
+
+    // ===== CARGA INICIAL =====
+    document.addEventListener('DOMContentLoaded', () => {
+        // Inicializar modal solo si bootstrap existe
+        const modalEl = document.getElementById('imgBrowserModal');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            imgBrowserModal = new bootstrap.Modal(modalEl);
+        }
+
+        // ===== GALERÍA SORTABLE =====
+        const gallerySort = document.getElementById('gallery-sort');
+        if (gallerySort && typeof Sortable !== 'undefined') {
+            Sortable.create(gallerySort, {
+                animation: 150,
+                ghostClass: 'bg-light',
+                onEnd: function () {
+                    const items = gallerySort.querySelectorAll('[data-img-id]');
+                    items.forEach((el, i) => {
+                        const id = el.dataset.imgId;
+                        fetch(`<?= APP_URL ?>admin/imagen_orden/${id}/${i}`).catch(() => { });
+                    });
+                }
+            });
+        }
+    });
+
+    // ===== PREVISUALIZACIÓN UNIFICADA =====
+    function renderPreview() {
+        if (!previewGrid) return;
+        previewGrid.innerHTML = '';
+        galleryContainer.innerHTML = '';
+
+        selectedFiles.forEach((file, index) => {
             const reader = new FileReader();
-            reader.onload = e => {
-                const col = document.createElement('div');
-                col.className = 'col-4 col-md-2 position-relative';
-                col.innerHTML = `
-                <div class="border rounded-3 overflow-hidden" style="height:70px">
-                    <img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">
-                </div>
-                <button type="button" class="btn btn-danger btn-xs position-absolute top-0 end-0 rounded-circle p-0"
-                        style="width:18px;height:18px;font-size:10px;line-height:1" onclick="this.closest('.col-4').remove()">×</button>`;
-                previewGrid.appendChild(col);
-            };
+            reader.onload = e => addThumb(e.target.result, 'Local', () => removeFile(index, 'local'));
             reader.readAsDataURL(file);
         });
-        updateFilesInput();
+
+        imgbbFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = e => addThumb(e.target.result, 'ImgBB', () => removeFile(index, 'imgbb'));
+            reader.readAsDataURL(file);
+        });
+
+        reusedImages.forEach((url, index) => {
+            addThumb(url, 'Galería', () => removeReused(index));
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'existing_images[]';
+            input.value = url;
+            galleryContainer.appendChild(input);
+        });
     }
 
-    function updateFilesInput() {
-        const dt = new DataTransfer();
-        selectedFiles.forEach(f => dt.items.add(f));
-        inputImages.files = dt.files;
+    function addThumb(src, label, onRemove) {
+        const col = document.createElement('div');
+        col.className = 'col-4 col-md-2 position-relative mb-2';
+        col.innerHTML = `
+            <div class="border rounded-4 overflow-hidden shadow-sm bg-white" style="height:85px">
+                <img src="${src}" style="width:100%;height:100%;object-fit:cover">
+                <div class="position-absolute top-0 start-0 m-1">
+                    <span class="badge bg-dark-subtle text-dark" style="font-size:8px">${label}</span>
+                </div>
+            </div>
+            <button type="button" class="btn btn-danger btn-xs position-absolute top-0 end-0 rounded-circle shadow"
+                    style="width:20px;height:20px;margin:-5px;z-index:10">×</button>`;
+
+        col.querySelector('button').onclick = (e) => {
+            e.stopPropagation();
+            onRemove();
+        };
+        previewGrid.appendChild(col);
     }
 
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('bg-light'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-light'));
-    dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('bg-light'); addFilesToPreview(e.dataTransfer.files); });
-    dropZone.addEventListener('click', () => inputImages.click());
-    inputImages.addEventListener('change', e => addFilesToPreview(e.target.files));
+    function removeFile(index, type) {
+        if (type === 'local') selectedFiles.splice(index, 1);
+        else imgbbFiles.splice(index, 1);
+        updateInputs();
+        renderPreview();
+    }
+
+    function removeReused(index) {
+        reusedImages.splice(index, 1);
+        renderPreview();
+    }
+
+    function updateInputs() {
+        const dtLocal = new DataTransfer();
+        selectedFiles.forEach(f => dtLocal.items.add(f));
+        const inLoc = document.getElementById('inputImages');
+        if (inLoc) inLoc.files = dtLocal.files;
+
+        const dtImgBB = new DataTransfer();
+        imgbbFiles.forEach(f => dtImgBB.items.add(f));
+        const inBB = document.getElementById('inputImgBB');
+        if (inBB) inBB.files = dtImgBB.files;
+    }
+
+    // Eventos de Inputs
+    const inLoc = document.getElementById('inputImages');
+    if (inLoc) inLoc.addEventListener('change', function (e) {
+        selectedFiles = [...selectedFiles, ...Array.from(e.target.files)].slice(0, MAX_IMAGES);
+        updateInputs();
+        renderPreview();
+    });
+
+    const inBB = document.getElementById('inputImgBB');
+    if (inBB) inBB.addEventListener('change', function (e) {
+        imgbbFiles = [...imgbbFiles, ...Array.from(e.target.files)].slice(0, MAX_IMAGES);
+        updateInputs();
+        renderPreview();
+    });
+
+    // ===== EXPLORADOR DE GALERÍA (MODAL) =====
+    let _imgs = [], _loaded = false;
+
+    function openImageBrowser() {
+        if (!imgBrowserModal) {
+            const modalEl = document.getElementById('imgBrowserModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                imgBrowserModal = new bootstrap.Modal(modalEl);
+            } else {
+                alert('Bootstrap no está listo. Por favor espera o recarga.');
+                return;
+            }
+        }
+        imgBrowserModal.show();
+        if (!_loaded) loadImages();
+    }
+
+    function loadImages() {
+        const list = document.getElementById('modal-img-list');
+        if (!list) return;
+        list.innerHTML = `<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div></div>`;
+
+        fetch('<?= APP_URL ?>admin/images_json')
+            .then(r => r.json())
+            .then(data => {
+                _imgs = data;
+                _loaded = true;
+                renderModalImages('all');
+            })
+            .catch(() => list.innerHTML = 'Error al cargar imágenes.');
+    }
+
+    function renderModalImages(filter) {
+        const list = document.getElementById('modal-img-list');
+        if (!list) return;
+        list.innerHTML = '';
+
+        const filtered = _imgs.filter(img => {
+            if (filter === 'all') return true;
+            if (filter === 'local') return img.source === 'local';
+            if (filter === 'api') return (img.source === 'api' || img.source === 'url');
+            return true;
+        });
+
+        filtered.forEach(img => {
+            const col = document.createElement('div');
+            col.className = 'col-4 col-sm-3 col-md-2 mb-3';
+            col.innerHTML = `
+                <div class="img-browser-item border rounded-3 overflow-hidden position-relative" style="height:100px; cursor:pointer">
+                    <img src="${img.full}" class="w-100 h-100" style="object-fit:cover">
+                    <div class="overlay position-absolute top-0 start-0 w-100 h-100 bg-primary bg-opacity-25 d-none align-items-center justify-content-center">
+                        <i class="bi bi-check-circle-fill text-white fs-4"></i>
+                    </div>
+                </div>`;
+
+            col.querySelector('.img-browser-item').onclick = () => {
+                if (reusedImages.length >= MAX_IMAGES) {
+                    Swal.fire('Límite', 'Máximo 5 imágenes por producto', 'info');
+                    return;
+                }
+                reusedImages.push(img.full);
+                imgBrowserModal.hide();
+                renderPreview();
+            };
+            list.appendChild(col);
+        });
+    }
+
+    function filterImgBrowser(type) {
+        renderModalImages(type);
+    }
 
     // ===== AÑADIR CAMPO URL =====
-    let urlCount = 1;
-    document.querySelector('.btn-add-url').addEventListener('click', () => {
-        if (urlCount >= 5) return;
-        urlCount++;
-        const div = document.createElement('div');
-        div.className = 'input-group mb-2';
-        div.innerHTML = `<span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
-        <input type="url" name="img_urls[]" class="form-control" placeholder="https://ejemplo.com/imagen.jpg">
-        <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>`;
-        document.getElementById('url-container').appendChild(div);
-    });
+    const btnAddUrl = document.querySelector('.btn-add-url');
+    if (btnAddUrl) {
+        btnAddUrl.addEventListener('click', () => {
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2 shadow-sm animate__animated animate__fadeInUp';
+            div.innerHTML = `
+                <span class="input-group-text bg-white"><i class="bi bi-link-45deg"></i></span>
+                <input type="url" name="img_urls[]" class="form-control border-start-0" placeholder="https://ejemplo.com/imagen.jpg">
+                <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>`;
+            document.getElementById('url-container').appendChild(div);
+        });
+    }
 
     // ===== TOGGLE DIGITAL =====
     const isDigitalSwitch = document.getElementById('isDigital');
@@ -356,59 +517,76 @@ $imgbbEnabled = defined('IMGBB_API_KEY') && !empty(IMGBB_API_KEY);
     const priceDozenWrapper = document.getElementById('price-dozen-wrapper');
 
     function toggleDigital() {
+        if (!isDigitalSwitch) return;
         const digital = isDigitalSwitch.checked;
-        digitalCard.style.display = digital ? 'block' : 'none';
-        priceDozenWrapper.style.opacity = digital ? '.4' : '1';
+        if (digitalCard) digitalCard.style.display = digital ? 'block' : 'none';
+        if (priceDozenWrapper) priceDozenWrapper.style.opacity = digital ? '.4' : '1';
     }
-    isDigitalSwitch.addEventListener('change', toggleDigital);
-    toggleDigital(); // Aplicar estado inicial
+    if (isDigitalSwitch) isDigitalSwitch.addEventListener('change', toggleDigital);
+    toggleDigital();
 
-    // ===== GALERÍA SORTABLE =====
-    const gallerySort = document.getElementById('gallery-sort');
-    if (gallerySort) {
-        Sortable.create(gallerySort, {
-            animation: 150,
-            ghostClass: 'bg-light',
-            onEnd: function () {
-                const items = gallerySort.querySelectorAll('[data-img-id]');
-                items.forEach((el, i) => {
-                    const id = el.dataset.imgId;
-                    fetch(`<?= APP_URL ?>admin/imagen_orden/${id}/${i}`).catch(() => { });
-                });
-            }
-        });
-    }
-
-    // ===== MARCAR COMO PORTADA =====
+    // ===== MARCAR COMO PORTADA (AJAX) =====
     document.querySelectorAll('.btn-set-primary').forEach(btn => {
         btn.addEventListener('click', function () {
             const id = this.dataset.img;
-            Swal.fire({
-                title: '¿Establecer como portada?', icon: 'question', showCancelButton: true,
-                confirmButtonText: 'Sí', cancelButtonText: 'No'
-            }).then(r => {
-                if (r.isConfirmed) {
-                    fetch(`<?= APP_URL ?>admin/imagen_principal/${id}`)
-                        .then(() => location.reload());
-                }
-            });
+            fetch(`<?= APP_URL ?>admin/imagen_principal/${id}`)
+                .then(() => location.reload());
         });
     });
 
-    // ===== ELIMINAR IMAGEN DE GALERÍA =====
+    // ===== ELIMINAR IMAGEN (AJAX) =====
     document.querySelectorAll('.btn-del-img').forEach(btn => {
         btn.addEventListener('click', function () {
             const id = this.dataset.img;
-            Swal.fire({
-                title: 'Eliminar imagen', text: 'Esta acción no se puede deshacer.', icon: 'warning',
-                showCancelButton: true, confirmButtonColor: '#ef233c', confirmButtonText: 'Eliminar',
-                cancelButtonText: 'Cancelar'
-            }).then(r => {
-                if (r.isConfirmed) {
-                    fetch(`<?= APP_URL ?>admin/imagen_eliminar/${id}`)
-                        .then(() => location.reload());
-                }
-            });
+            const action = () => fetch(`<?= APP_URL ?>admin/imagen_eliminar/${id}`).then(() => location.reload());
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: '¿Eliminar imagen?', text: 'Se borrará permanentemente.', icon: 'warning',
+                    showCancelButton: true, confirmButtonColor: '#ef233c', confirmButtonText: 'Eliminar'
+                }).then(r => { if (r.isConfirmed) action(); });
+            } else if (confirm('¿Eliminar imagen?')) {
+                action();
+            }
         });
     });
 </script>
+
+<!-- Modal Explorador de Imágenes -->
+<div class="modal fade" id="imgBrowserModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold">Explorador de Galería</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex gap-2 mb-4 overflow-auto pb-1">
+                    <button class="btn btn-sm btn-dark rounded-pill px-3"
+                        onclick="filterImgBrowser('all')">Todas</button>
+                    <button class="btn btn-sm btn-outline-dark rounded-pill px-3"
+                        onclick="filterImgBrowser('local')">Servidor Local</button>
+                    <button class="btn btn-sm btn-outline-dark rounded-pill px-3"
+                        onclick="filterImgBrowser('api')">ImgBB / URL</button>
+                </div>
+                <div class="row g-2" id="modal-img-list">
+                    <!-- Dinámico con JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .img-browser-item:hover .overlay {
+        display: flex !important;
+    }
+
+    .gallery-thumb:hover .gallery-actions {
+        opacity: 1;
+    }
+
+    .btn-xs {
+        padding: 1px 5px;
+        font-size: 10px;
+    }
+</style>

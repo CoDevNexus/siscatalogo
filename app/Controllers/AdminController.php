@@ -96,7 +96,7 @@ class AdminController extends Controller
         // Opción A: Subir a ImgBB (si hay key configurada y se eligió esa opción)
         $useImgBB = !empty($_POST['use_imgbb']) && defined('IMGBB_API_KEY') && IMGBB_API_KEY;
         if (!$logoUploaded && $useImgBB && isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-            $result = \App\Services\ImageService::uploadToImgBB($_FILES['logo']['tmp_name'], IMGBB_API_KEY);
+            $result = ImageService::uploadToImgBB($_FILES['logo']['tmp_name'], IMGBB_API_KEY);
             if ($result) {
                 // Eliminar logo anterior local si existe
                 $oldLogo = $companyModel->getLogoPath();
@@ -157,7 +157,6 @@ class AdminController extends Controller
                 if ($src && function_exists('imagewebp')) {
                     $fileName = 'logo_empresa.webp';
                     imagewebp($src, $uploadDir . $fileName, 85);
-                    imagedestroy($src);
                     $companyModel->updateLogo('assets/img/' . $fileName);
                 } else {
                     // Fallback: copiar sin comprimir
@@ -210,50 +209,47 @@ class AdminController extends Controller
             $this->redirect('admin/productos');
             return;
         }
-        $productoModel = $this->model('ProductoModel');
-        $categoryModel = $this->model('CategoryModel');
 
         $name = trim($_POST['name'] ?? '');
         $categoryId = (int) ($_POST['category_id'] ?? 0);
-        $priceUnit = (float) ($_POST['price_unit'] ?? 0);
-        $priceDozen = (float) ($_POST['price_dozen'] ?? 0);
-        $isDigital = isset($_POST['is_digital']) ? 1 : 0;
-        $desc = trim($_POST['description'] ?? '');
-        $status = $_POST['status'] ?? 'active';
-        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name))) . '-' . time();
-
-        $imageUrl = '';
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
-            $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-            if (in_array($ext, $allowed)) {
-                $fileName = 'prod_' . time() . '.' . $ext;
-                $dest = BASE_PATH . 'public/assets/img/' . $fileName;
-                if (move_uploaded_file($_FILES['image']['tmp_name'], $dest)) {
-                    $imageUrl = 'assets/img/' . $fileName;
-                }
-            }
-        }
 
         if (!$name || !$categoryId) {
-            $data = ['title' => 'Nuevo Producto', 'categorias' => $categoryModel->getAll(), 'error' => 'Nombre y categoría son obligatorios.'];
-            $this->view('admin/productos/form', $data);
+            $_SESSION['error_msg'] = 'Nombre y categoría son obligatorios.';
+            $this->redirect('admin/producto_crear');
             return;
         }
 
-        $productoModel->create([
+        $productoModel = $this->model('ProductoModel');
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $name))) . '-' . time();
+
+        $data = [
             'name' => $name,
             'slug' => $slug,
             'category_id' => $categoryId,
-            'price_unit' => $priceUnit,
-            'price_dozen' => $priceDozen,
-            'is_digital' => $isDigital,
-            'description' => $desc,
-            'image_url' => $imageUrl,
-            'status' => $status
-        ]);
+            'price_unit' => (float) ($_POST['price_unit'] ?? 0),
+            'price_dozen' => (float) ($_POST['price_dozen'] ?? 0),
+            'price_combo' => !empty($_POST['price_combo']) ? (float) $_POST['price_combo'] : null,
+            'is_digital' => isset($_POST['is_digital']) ? 1 : 0,
+            'description' => trim($_POST['description'] ?? ''),
+            'status' => $_POST['status'] ?? 'active',
+            'allow_client_note' => isset($_POST['allow_client_note']) ? 1 : 0,
+            'allow_client_logo' => isset($_POST['allow_client_logo']) ? 1 : 0
+        ];
 
-        $_SESSION['success_msg'] = "Producto '$name' creado exitosamente.";
+        $productId = $productoModel->create($data);
+
+        if ($productId) {
+            // Procesar Galería (Múltiples fuentes)
+            $this->processImages((int) $productId, $this->model('ImagenProductoModel'));
+
+            // Procesar Archivo Digital
+            if (!empty($_FILES['digital_file']['name'])) {
+                $this->saveDigitalFile((int) $productId, $_FILES['digital_file']);
+            }
+
+            $_SESSION['success_msg'] = "Producto '$name' creado correctamente.";
+        }
+
         $this->redirect('admin/productos');
     }
 
@@ -298,29 +294,29 @@ class AdminController extends Controller
         $productoModel = $this->model('ProductoModel');
         $existing = $productoModel->getById($id);
 
-        $imageUrl = $existing['image_url'] ?? '';
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
-            $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-            if (in_array($ext, $allowed)) {
-                $fileName = 'prod_' . time() . '.' . $ext;
-                $dest = BASE_PATH . 'public/assets/img/' . $fileName;
-                if (move_uploaded_file($_FILES['image']['tmp_name'], $dest)) {
-                    $imageUrl = 'assets/img/' . $fileName;
-                }
-            }
-        }
-
-        $productoModel->update($id, [
+        $data = [
             'name' => trim($_POST['name'] ?? ''),
             'category_id' => (int) ($_POST['category_id'] ?? 0),
             'price_unit' => (float) ($_POST['price_unit'] ?? 0),
             'price_dozen' => (float) ($_POST['price_dozen'] ?? 0),
+            'price_combo' => !empty($_POST['price_combo']) ? (float) $_POST['price_combo'] : null,
             'is_digital' => isset($_POST['is_digital']) ? 1 : 0,
             'description' => trim($_POST['description'] ?? ''),
-            'image_url' => $imageUrl,
-            'status' => $_POST['status'] ?? 'active'
-        ]);
+            'status' => $_POST['status'] ?? 'active',
+            'allow_client_note' => isset($_POST['allow_client_note']) ? 1 : 0,
+            'allow_client_logo' => isset($_POST['allow_client_logo']) ? 1 : 0,
+            'image_url' => $existing['image_url'] ?? ''
+        ];
+
+        $productoModel->update($id, $data);
+
+        // Procesar Galería (Nuevas imágenes de cualquier fuente)
+        $this->processImages($id, $this->model('ImagenProductoModel'));
+
+        // Procesar Archivo Digital (Si sube uno nuevo)
+        if (!empty($_FILES['digital_file']['name'])) {
+            $this->saveDigitalFile($id, $_FILES['digital_file']);
+        }
 
         $_SESSION['success_msg'] = 'Producto actualizado correctamente.';
         $this->redirect('admin/productos');
@@ -355,7 +351,7 @@ class AdminController extends Controller
             if ($primary) {
                 $this->model('ProductoModel')->updateImageUrl(
                     $img['product_id'],
-                    \App\Services\ImageService::buildUrl($primary['image_path'], $primary['source'])
+                    ImageService::buildUrl($primary['image_path'], $primary['source'])
                 );
             }
             echo json_encode(['ok' => true]);
@@ -380,7 +376,7 @@ class AdminController extends Controller
             $primary = $imgModel->getPrimary($img['product_id']);
             $this->model('ProductoModel')->updateImageUrl(
                 $img['product_id'],
-                $primary ? \App\Services\ImageService::buildUrl($primary['image_path'], $primary['source']) : ''
+                $primary ? ImageService::buildUrl($primary['image_path'], $primary['source']) : ''
             );
             echo json_encode(['ok' => true]);
         } else {
@@ -402,15 +398,33 @@ class AdminController extends Controller
 
     private function processImages(int $productId, $imgModel): array
     {
-        $existing = count($imgModel->getByProduct($productId));
+        $existingCount = count($imgModel->getByProduct($productId));
         $maxImages = 5;
-        $log = []; // Para feedback al usuario
+        $log = [];
 
-        // Opción 1: Archivos locales -> WebP
+        // 1. Imágenes seleccionadas del Explorador (reutilizadas)
+        $selectedExisting = (array) ($_POST['existing_images'] ?? []);
+        foreach ($selectedExisting as $imgPath) {
+            if ($existingCount >= $maxImages)
+                break;
+
+            // Detectar fuente basandose en la URL
+            $source = 'local';
+            if (str_starts_with($imgPath, 'http')) {
+                $source = str_contains($imgPath, 'ibb.co') ? 'api' : 'url';
+            }
+
+            $imgModel->addImage($productId, $imgPath, $source, $existingCount === 0, $existingCount);
+            $existingCount++;
+            $log[] = ['type' => 'reused', 'name' => basename($imgPath), 'ok' => true];
+        }
+
+        // 2. Archivos locales -> WebP Comprimido
         if (!empty($_FILES['images']['name'][0])) {
             for ($i = 0; $i < count($_FILES['images']['name']); $i++) {
-                if ($existing >= $maxImages)
+                if ($existingCount >= $maxImages)
                     break;
+
                 $f = [
                     'name' => $_FILES['images']['name'][$i],
                     'type' => $_FILES['images']['type'][$i],
@@ -418,35 +432,38 @@ class AdminController extends Controller
                     'error' => $_FILES['images']['error'][$i],
                     'size' => $_FILES['images']['size'][$i],
                 ];
+
                 if ($f['error'] === UPLOAD_ERR_OK) {
-                    $result = \App\Services\ImageService::processUpload($f);
+                    // Calidad 75 para ahorrar espacio en productos (galerías suelen ser más pesadas)
+                    $result = ImageService::processUpload($f, 75);
                     if ($result) {
-                        $imgModel->addImage($productId, $result['path'], $result['source'], $existing === 0, $existing);
-                        $existing++;
+                        $imgModel->addImage($productId, $result['path'], $result['source'], $existingCount === 0, $existingCount);
+                        $existingCount++;
                         $log[] = ['type' => 'local', 'name' => $f['name'], 'ok' => true];
                     }
                 }
             }
         }
 
-        // Opción 2: URLs externas
+        // 3. URLs externas directas
         $urls = array_filter(array_map('trim', (array) ($_POST['img_urls'] ?? [])));
         foreach ($urls as $url) {
-            if ($existing >= $maxImages)
+            if ($existingCount >= $maxImages)
                 break;
-            if (\App\Services\ImageService::validateExternalUrl($url)) {
-                $imgModel->addImage($productId, $url, 'url', $existing === 0, $existing);
-                $existing++;
+            if (ImageService::validateExternalUrl($url)) {
+                $imgModel->addImage($productId, $url, 'url', $existingCount === 0, $existingCount);
+                $existingCount++;
                 $log[] = ['type' => 'url', 'name' => $url, 'ok' => true];
             }
         }
 
-        // Opción 3: ImgBB API
+        // 4. Subida a ImgBB
         $imgbbKey = defined('IMGBB_API_KEY') ? IMGBB_API_KEY : '';
         if (!empty($_FILES['imgbb_uploads']['name'][0]) && $imgbbKey) {
             for ($i = 0; $i < count($_FILES['imgbb_uploads']['name']); $i++) {
-                if ($existing >= $maxImages)
+                if ($existingCount >= $maxImages)
                     break;
+
                 $f = [
                     'name' => $_FILES['imgbb_uploads']['name'][$i],
                     'type' => $_FILES['imgbb_uploads']['type'][$i],
@@ -454,17 +471,22 @@ class AdminController extends Controller
                     'error' => $_FILES['imgbb_uploads']['error'][$i],
                     'size' => $_FILES['imgbb_uploads']['size'][$i],
                 ];
+
                 if ($f['error'] === UPLOAD_ERR_OK) {
-                    $result = \App\Services\ImageService::uploadToImgBB($f['tmp_name'], $imgbbKey);
+                    $result = ImageService::uploadToImgBB($f['tmp_name'], $imgbbKey);
                     if ($result) {
-                        $imgModel->addImage($productId, $result['path'], 'api', $existing === 0, $existing);
-                        $existing++;
-                        $log[] = ['type' => 'imgbb', 'name' => $f['name'], 'ok' => true, 'url' => $result['path']];
-                    } else {
-                        $log[] = ['type' => 'imgbb', 'name' => $f['name'], 'ok' => false];
+                        $imgModel->addImage($productId, $result['path'], 'api', $existingCount === 0, $existingCount);
+                        $existingCount++;
+                        $log[] = ['type' => 'imgbb', 'name' => $f['name'], 'ok' => true];
                     }
                 }
             }
+        }
+
+        // Sincronizar image_url del producto con la principal de la galería
+        $primary = $imgModel->getPrimary($productId);
+        if ($primary) {
+            $this->model('ProductoModel')->updateImageUrl($productId, $primary['image_path']);
         }
 
         return $log;
@@ -523,7 +545,7 @@ class AdminController extends Controller
         }
 
         // 2. storage/productos/ (imágenes de productos comprimidas a WebP)
-        $storDir = BASE_PATH . 'storage/productos/';
+        $storDir = BASE_PATH . 'public/storage/productos/';
         if (is_dir($storDir)) {
             foreach (glob($storDir . '*.{webp,jpg,jpeg,png}', GLOB_BRACE) as $f) {
                 $images[] = [
@@ -539,19 +561,23 @@ class AdminController extends Controller
         $db = \App\Core\Database::getInstance();
         try {
             $apiRows = $db->fetchAll(
-                "SELECT image_path, source FROM product_images
-                 WHERE source IN ('api','url') AND image_path != ''
-                 GROUP BY image_path, source ORDER BY MAX(id) DESC LIMIT 80"
+                "SELECT image_path, source, MAX(id) as max_id 
+                 FROM product_images 
+                 WHERE source IN ('api','url') AND image_path IS NOT NULL AND image_path != '' 
+                 GROUP BY image_path, source 
+                 ORDER BY max_id DESC 
+                 LIMIT 80"
             );
             foreach ($apiRows as $row) {
                 $images[] = [
                     'url' => $row['image_path'],
-                    'full' => $row['image_path'],
-                    'label' => basename(parse_url($row['image_path'], PHP_URL_PATH)) ?: 'ImgBB',
-                    'source' => 'api',
+                    'full' => ImageService::buildUrl($row['image_path'], $row['source']),
+                    'label' => basename(parse_url($row['image_path'], PHP_URL_PATH)) ?: 'Imagen',
+                    'source' => $row['source'],
                 ];
             }
-        } catch (\Exception $e) { /* tabla puede no existir */
+        } catch (\Exception $e) {
+            // Log error si es necesario, por ahora mantenemos el flujo para que no rompa el JSON local
         }
 
         echo json_encode($images, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

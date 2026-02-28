@@ -8,12 +8,25 @@
             <div class="col-lg-4">
                 <?php
                 $db = \App\Core\Database::getInstance();
-                $co = $db->fetch("SELECT name, logo_url, phone_whatsapp, whatsapp, facebook_url, facebook, instagram, address FROM company_profile WHERE id = 1");
-                $logoF = !empty($co['logo_url']) ? APP_URL . $co['logo_url'] : null;
+                $co = $db->fetch("SELECT name, logo_url, phone_whatsapp, whatsapp, facebook_url, facebook, instagram, tiktok, pinterest_url, address, ciudad, email, eslogan, description FROM company_profile WHERE id = 1");
+
+                // Normalización de Logo (Soporte ImgBB y Local)
+                $logoF = null;
+                if (!empty($co['logo_url'])) {
+                    $logoF = str_starts_with($co['logo_url'], 'http')
+                        ? htmlspecialchars($co['logo_url'])
+                        : APP_URL . htmlspecialchars($co['logo_url']);
+                }
+
                 $coNameF = !empty($co['name']) ? htmlspecialchars($co['name']) : APP_NAME;
+
+                // Normalización de Redes y Contacto
                 $co['whatsapp'] = !empty($co['whatsapp']) ? $co['whatsapp'] : ($co['phone_whatsapp'] ?? '');
                 $co['facebook'] = !empty($co['facebook']) ? $co['facebook'] : ($co['facebook_url'] ?? '');
                 $co['instagram'] = $co['instagram'] ?? '';
+                $co['tiktok'] = $co['tiktok'] ?? '';
+                $co['pinterest'] = $co['pinterest_url'] ?? '';
+                $co['eslogan'] = !empty($co['eslogan']) ? htmlspecialchars($co['eslogan']) : 'Especialistas en corte láser y diseño personalizado.';
                 ?>
                 <?php if ($logoF): ?>
                     <img src="<?= $logoF ?>" alt="Logo"
@@ -22,8 +35,7 @@
                 <?php endif; ?>
                 <h5 class="mb-2"><?= $coNameF ?></h5>
                 <p class="mb-3" style="font-size:.88rem;line-height:1.6">
-                    Especialistas en corte láser, grabado personalizado, sublimación y vectores digitales para MDF y
-                    acrílico.
+                    <?= $co['eslogan'] ?>
                 </p>
                 <div class="d-flex gap-2">
                     <?php if (!empty($co['whatsapp'])): ?>
@@ -42,6 +54,17 @@
                         <a href="<?= htmlspecialchars($co['instagram']) ?>" target="_blank" class="social-icon"
                             title="Instagram">
                             <i class="bi bi-instagram"></i>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (!empty($co['tiktok'])): ?>
+                        <a href="<?= htmlspecialchars($co['tiktok']) ?>" target="_blank" class="social-icon" title="TikTok">
+                            <i class="bi bi-tiktok"></i>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (!empty($co['pinterest'])): ?>
+                        <a href="<?= htmlspecialchars($co['pinterest']) ?>" target="_blank" class="social-icon"
+                            title="Pinterest">
+                            <i class="bi bi-pinterest"></i>
                         </a>
                     <?php endif; ?>
                 </div>
@@ -65,18 +88,22 @@
             </div>
 
             <div class="col-lg-4">
-                <h5 class="mb-3 fs-6 fw-bold text-uppercase" style="letter-spacing:.8px">Contacto rápido</h5>
-                <?php if (!empty($co['phone'])): ?>
-                    <p class="mb-2" style="font-size:.88rem"><i
-                            class="bi bi-telephone me-2 text-danger"></i><?= htmlspecialchars($co['phone']) ?></p>
-                <?php endif; ?>
+                <h5 class="mb-3 fs-6 fw-bold text-uppercase" style="letter-spacing:.8px">Ubicación y Contacto</h5>
                 <?php if (!empty($co['address'])): ?>
-                    <p class="mb-3" style="font-size:.88rem"><i
-                            class="bi bi-geo-alt me-2 text-danger"></i><?= htmlspecialchars($co['address']) ?></p>
+                    <p class="mb-2" style="font-size:.88rem">
+                        <i class="bi bi-geo-alt me-2 text-danger"></i>
+                        <?= htmlspecialchars($co['address']) ?>    <?= !empty($co['ciudad']) ? ', ' . htmlspecialchars($co['ciudad']) : '' ?>
+                    </p>
+                <?php endif; ?>
+                <?php if (!empty($co['email'])): ?>
+                    <p class="mb-3" style="font-size:.88rem">
+                        <i class="bi bi-envelope me-2 text-danger"></i>
+                        <?= htmlspecialchars($co['email']) ?>
+                    </p>
                 <?php endif; ?>
                 <?php if (!empty($co['whatsapp'])): ?>
                     <a href="https://wa.me/<?= preg_replace('/\D/', '', $co['whatsapp']) ?>?text=<?= urlencode('Hola, me interesa hacer un pedido.') ?>"
-                        target="_blank" class="btn btn-success btn-sm rounded-pill px-4 fw-semibold">
+                        target="_blank" class="btn btn-success btn-sm rounded-pill px-4 fw-semibold mt-2">
                         <i class="bi bi-whatsapp me-1"></i>Escribir por WhatsApp
                     </a>
                 <?php endif; ?>
@@ -87,7 +114,7 @@
         <hr class="footer-divider">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2" style="font-size:.82rem">
             <span>&copy; <?= date('Y') ?> <?= $coNameF ?>. Todos los derechos reservados.</span>
-            <span style="opacity:.5">Desarrollado con <i class="bi bi-heart-fill text-danger"></i> · MVC PHP</span>
+            <span style="opacity:.5">Desarrollado por <a href="https://codevnexus.tech/" target="_blank" class="text-decoration-none fw-bold text-white shadow-sm">CoDevNexus</a></span>
         </div>
     </div>
 </footer>

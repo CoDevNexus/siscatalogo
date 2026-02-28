@@ -515,7 +515,13 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
         document.getElementById('logoInput').value = '';
 
         /* cerrar modal */
-        bootstrap.Modal.getInstance(document.getElementById('imgBrowserModal')).hide();
+        if (typeof bootstrap !== 'undefined') {
+            var m = bootstrap.Modal.getInstance(document.getElementById('imgBrowserModal'));
+            if (m) m.hide();
+        } else {
+            // Fallback si por alguna razón no hay bootstrap
+            $('#imgBrowserModal').modal('hide'); 
+        }
     }
 
     function clearExistingLogo(e) {

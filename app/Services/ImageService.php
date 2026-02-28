@@ -14,7 +14,7 @@ class ImageService
 
     private static function init()
     {
-        self::$storagePath = BASE_PATH . 'storage/productos/';
+        self::$storagePath = BASE_PATH . 'public/storage/productos/';
         if (!is_dir(self::$storagePath)) {
             mkdir(self::$storagePath, 0755, true);
         }
@@ -28,11 +28,19 @@ class ImageService
     {
         self::init();
 
-        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
-        if (!in_array($file['type'], $allowed)) {
+        // Validar tamaño
+        if ($file['size'] > 8 * 1024 * 1024) { // 8MB máx
             return false;
         }
-        if ($file['size'] > 8 * 1024 * 1024) { // 8MB máx
+
+        // Obtener mime real si el de $_FILES falla o es genérico
+        $mime = $file['type'];
+        if ($mime === 'application/octet-stream' || empty($mime)) {
+            $mime = mime_content_type($file['tmp_name']);
+        }
+
+        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+        if (!in_array($mime, $allowed)) {
             return false;
         }
 
@@ -42,8 +50,9 @@ class ImageService
 
         // Detectar tipo original y crear imagen GD
         $src = null;
-        switch ($file['type']) {
+        switch ($mime) {
             case 'image/jpeg':
+            case 'image/jpg':
                 $src = @imagecreatefromjpeg($tmpPath);
                 break;
             case 'image/png':
@@ -72,7 +81,6 @@ class ImageService
 
         // Convertir a WebP con compresión
         $success = imagewebp($src, $destPath, $quality);
-        imagedestroy($src);
 
         if ($success) {
             return ['path' => 'storage/productos/' . $fileName, 'source' => 'local'];
@@ -124,7 +132,6 @@ class ImageService
 
         $response = curl_exec($ch);
         $error = curl_error($ch);
-        curl_close($ch);
 
         if ($error || !$response) {
             return false;

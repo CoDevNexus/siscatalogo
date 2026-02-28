@@ -12,7 +12,12 @@
     $db = \App\Core\Database::getInstance();
     $company = $db->fetch("SELECT name, logo_url, phone_whatsapp, whatsapp, facebook_url, facebook, instagram, address FROM company_profile WHERE id = 1");
     $companyName = !empty($company['name']) ? htmlspecialchars($company['name']) : APP_NAME;
-    $logoUrl = !empty($company['logo_url']) ? APP_URL . htmlspecialchars($company['logo_url']) : null;
+    $logoUrl = null;
+    if (!empty($company['logo_url'])) {
+        $logoUrl = str_starts_with($company['logo_url'], 'http')
+            ? htmlspecialchars($company['logo_url'])
+            : APP_URL . htmlspecialchars($company['logo_url']);
+    }
     // Normalizar: preferir nuevas columnas, hacer fallback a las viejas
     $company['whatsapp'] = !empty($company['whatsapp']) ? $company['whatsapp'] : ($company['phone_whatsapp'] ?? '');
     $company['facebook'] = !empty($company['facebook']) ? $company['facebook'] : ($company['facebook_url'] ?? '');

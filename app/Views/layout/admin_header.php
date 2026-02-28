@@ -11,7 +11,12 @@
     <?php
     $db = \App\Core\Database::getInstance();
     $_headerCompany = $db->fetch("SELECT name, logo_url FROM company_profile WHERE id = 1");
-    $logoUrl = !empty($_headerCompany['logo_url']) ? APP_URL . htmlspecialchars($_headerCompany['logo_url']) : null;
+    $logoUrl = null;
+    if (!empty($_headerCompany['logo_url'])) {
+        $logoUrl = str_starts_with($_headerCompany['logo_url'], 'http')
+            ? htmlspecialchars($_headerCompany['logo_url'])
+            : APP_URL . htmlspecialchars($_headerCompany['logo_url']);
+    }
     $currentUri = $_SERVER['REQUEST_URI'];
     ?>
 

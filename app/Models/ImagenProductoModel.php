@@ -76,7 +76,7 @@ class ImagenProductoModel extends Model
         // Obtener path antes de borrar para eliminar el archivo físico si es local
         $img = $this->db->fetch("SELECT * FROM product_images WHERE id = :id", ['id' => $imageId]);
         if ($img && $img['source'] === 'local') {
-            $localPath = BASE_PATH . 'storage/productos/' . basename($img['image_path']);
+            $localPath = BASE_PATH . 'public/storage/productos/' . basename($img['image_path']);
             if (file_exists($localPath)) {
                 @unlink($localPath);
             }
