@@ -1,13 +1,25 @@
 <?php
-// Cargar las imágenes de galería para todos los productos en un solo query
-$db = \App\Core\Database::getInstance();
-$allImages = $db->fetchAll("SELECT * FROM product_images ORDER BY product_id, sort_order ASC, is_primary DESC");
+$pg = $pagination;
+$search = $pg['search'];
+$sort = $pg['sort'];
+$dir = $pg['dir'];
+$currentPage = $pg['current_page'];
+$totalPages = $pg['total_pages'];
 
-// Indexar por product_id para acceso rápido en el loop
-$imagesByProduct = [];
-foreach ($allImages as $img) {
-    $imagesByProduct[$img['product_id']][] = $img;
-}
+// Función helper para generar URLs de ordenación
+$buildSortUrl = function ($col) use ($pg) {
+    $newDir = ($pg['sort'] === $col && $pg['dir'] === 'ASC') ? 'DESC' : 'ASC';
+    return APP_URL . "admin/productos?p=1&s=" . urlencode($pg['search']) . "&sort=$col&dir=$newDir";
+};
+
+// Función helper para iconos de ordenación
+$sortIcon = function ($col) use ($sort, $dir) {
+    if ($sort !== $col)
+        return '<i class="bi bi-arrow-down-up ms-1 text-muted small"></i>';
+    return $dir === 'ASC'
+        ? '<i class="bi bi-sort-alpha-down ms-1 text-primary"></i>'
+        : '<i class="bi bi-sort-alpha-up-alt ms-1 text-primary"></i>';
+};
 ?>
 
 <?php if (!empty($success)): ?>
@@ -16,145 +28,134 @@ foreach ($allImages as $img) {
             data-bs-dismiss="alert"></button></div>
 <?php endif; ?>
 
-<!-- Encabezado y botón nuevo -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
+<!-- Encabezado y buscador -->
+<div class="row g-3 align-items-center mb-4">
+    <div class="col-md-4">
         <h5 class="fw-bold mb-0"><i class="bi bi-box-seam me-2 text-primary"></i>Inventario</h5>
-        <small class="text-muted"><?= count($productos) ?> producto(s) registrado(s)</small>
+        <small class="text-muted"><?= $pg['total_items'] ?> producto(s) en total</small>
     </div>
-    <a href="<?= APP_URL ?>admin/producto_crear" class="btn btn-primary rounded-pill px-4">
-        <i class="bi bi-plus-lg me-1"></i> Nuevo Producto
-    </a>
+    <div class="col-md-5">
+        <form action="<?= APP_URL ?>admin/productos" method="GET" class="position-relative">
+            <input type="hidden" name="sort" value="<?= $sort ?>">
+            <input type="hidden" name="dir" value="<?= $dir ?>">
+            <input type="text" name="s" class="form-control rounded-pill ps-4 shadow-sm"
+                placeholder="Buscar por nombre, categoría, estado..." value="<?= htmlspecialchars($search) ?>">
+            <button type="submit" class="btn btn-primary position-absolute end-0 top-0 h-100 rounded-pill px-4">
+                <i class="bi bi-search"></i>
+            </button>
+        </form>
+    </div>
+    <div class="col-md-3 text-end">
+        <a href="<?= APP_URL ?>admin/producto_crear" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i> Nuevo
+        </a>
+    </div>
 </div>
 
 <!-- Tabla de productos -->
-<div class="card border-0 shadow-sm rounded-4">
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="table-dark">
+                <thead class="bg-dark text-white">
                     <tr>
-                        <th style="width:180px">Imágenes</th>
-                        <th>Nombre</th>
-                        <th>Categoría</th>
-                        <th>Precio Unit.</th>
-                        <th>Precio Doc.</th>
-                        <th>Tipo</th>
-                        <th>Estado</th>
+                        <th class="ps-4" style="width:100px">Portada</th>
+                        <th><a href="<?= $buildSortUrl('p.name') ?>" class="text-white text-decoration-none">Nombre
+                                <?= $sortIcon('p.name') ?></a></th>
+                        <th><a href="<?= $buildSortUrl('category_name') ?>"
+                                class="text-white text-decoration-none">Categoría <?= $sortIcon('category_name') ?></a>
+                        </th>
+                        <th><a href="<?= $buildSortUrl('p.price_unit') ?>" class="text-white text-decoration-none">P.
+                                Unit <?= $sortIcon('p.price_unit') ?></a></th>
+                        <th><a href="<?= $buildSortUrl('p.is_digital') ?>" class="text-white text-decoration-none">Tipo
+                                <?= $sortIcon('p.is_digital') ?></a></th>
+                        <th><a href="<?= $buildSortUrl('p.status') ?>" class="text-white text-decoration-none">Estado
+                                <?= $sortIcon('p.status') ?></a></th>
                         <th class="text-end pe-4">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($productos)): ?>
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-5">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                No hay productos aún.
-                                <a href="<?= APP_URL ?>admin/producto_crear" class="d-block mt-2">Crear el primero</a>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="bi bi-search fs-1 d-block mb-2"></i>
+                                No se encontraron productos coincidentes.
+                                <?php if (!empty($search)): ?>
+                                    <br><a href="<?= APP_URL ?>admin/productos" class="small">Limpiar filtros</a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($productos as $p):
-                            $imgs = $imagesByProduct[$p['id']] ?? [];
-                            ?>
+                        <?php foreach ($productos as $p): ?>
                             <tr>
-                                <!-- Columna de imágenes en miniatura -->
-                                <td class="py-2">
-                                    <?php if (!empty($imgs)): ?>
-                                        <div class="d-flex flex-wrap gap-1">
-                                            <?php foreach ($imgs as $img):
-                                                $imgUrl = ($img['source'] === 'local')
-                                                    ? APP_URL . $img['image_path']
-                                                    : $img['image_path'];
-                                                $badgeClass = match ($img['source']) {
-                                                    'api' => 'bg-info',
-                                                    'url' => 'bg-secondary',
-                                                    default => 'bg-success',
-                                                };
-                                                $badgeLabel = match ($img['source']) {
-                                                    'api' => 'BB',
-                                                    'url' => 'URL',
-                                                    default => 'L',
-                                                };
-                                                ?>
-                                                <div class="position-relative" style="width:44px;height:44px;"
-                                                    title="<?= $img['is_primary'] ? '⭐ Portada · ' : '' ?><?= ucfirst($img['source']) ?>: <?= htmlspecialchars(basename($img['image_path'])) ?>">
-                                                    <img src="<?= $imgUrl ?>"
-                                                        onerror="this.src='https://placehold.co/44x44/eee/999?text=?'"
-                                                        class="rounded border <?= $img['is_primary'] ? 'border-warning border-2' : '' ?>"
-                                                        style="width:44px;height:44px;object-fit:cover;">
-                                                    <span class="position-absolute bottom-0 end-0 badge <?= $badgeClass ?> p-0"
-                                                        style="font-size:8px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;border-radius:3px;">
-                                                        <?= $badgeLabel ?>
-                                                    </span>
-                                                    <?php if ($img['is_primary']): ?>
-                                                        <span class="position-absolute top-0 start-0"
-                                                            style="font-size:10px;line-height:1;color:#f6c90e;text-shadow:0 0 2px rgba(0,0,0,.5);">★</span>
-                                                    <?php endif; ?>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        </div>
-                                        <div class="mt-1">
-                                            <small class="text-muted"><?= count($imgs) ?>/5
-                                                imagen<?= count($imgs) > 1 ? 'es' : '' ?></small>
-                                        </div>
-                                    <?php elseif (!empty($p['image_url'])): ?>
-                                        <!-- Imagen legada (cargada antes del sistema de galería) -->
-                                        <div class="position-relative" style="width:44px;height:44px;" title="Imagen directa">
-                                            <img src="<?= APP_URL . htmlspecialchars($p['image_url']) ?>"
-                                                onerror="this.src='https://placehold.co/44x44/eee/999?text=?'"
-                                                class="rounded border" style="width:44px;height:44px;object-fit:cover;">
-                                        </div>
-                                    <?php else: ?>
-                                        <div class="d-flex align-items-center justify-content-center bg-light border rounded text-muted"
-                                            style="width:44px;height:44px;" title="Sin imagen">
-                                            <i class="bi bi-image small"></i>
-                                        </div>
-                                    <?php endif; ?>
+                                <td class="ps-4">
+                                    <div class="product-preview-box">
+                                        <?php if (!empty($p['image_url'])):
+                                            $isExternal = str_starts_with($p['image_url'], 'http');
+                                            $imgUrl = $isExternal ? $p['image_url'] : APP_URL . $p['image_url'];
+                                            ?>
+                                            <img src="<?= $imgUrl ?>" onerror="this.src='https://placehold.co/50x50/eee/999?text=?'"
+                                                class="rounded-3 border shadow-sm" style="width:50px;height:50px;object-fit:cover;">
+                                        <?php else: ?>
+                                            <div class="d-flex align-items-center justify-content-center bg-light border rounded-3 text-muted"
+                                                style="width:50px;height:50px;">
+                                                <i class="bi bi-image"></i>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
-
-                                <td class="fw-semibold"><?= htmlspecialchars($p['name']) ?></td>
                                 <td>
-                                    <span class="badge bg-light text-dark border">
+                                    <div class="fw-bold text-dark"><?= htmlspecialchars($p['name']) ?></div>
+                                    <small class="text-muted" style="font-size:0.75rem"><?= $p['slug'] ?></small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark font-monospace border">
                                         <?= htmlspecialchars($p['category_name'] ?? '—') ?>
                                     </span>
                                 </td>
-                                <td class="fw-bold">$<?= number_format($p['price_unit'], 2) ?></td>
-                                <td class="text-muted">
-                                    <?= $p['price_dozen'] > 0 ? '$' . number_format($p['price_dozen'], 2) : '<span class="text-muted">—</span>' ?>
+                                <td>
+                                    <div class="fw-bold text-primary">$<?= number_format($p['price_unit'], 2) ?></div>
+                                    <?php if ($p['price_dozen'] > 0): ?>
+                                        <small class="text-success" style="font-size:0.7rem">Doc:
+                                            $<?= number_format($p['price_dozen'], 2) ?></small>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php if ($p['is_digital']): ?>
-                                        <span class="badge bg-primary-subtle text-primary border border-primary">
+                                        <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary px-2">
                                             <i class="bi bi-cloud-download me-1"></i>Digital
                                         </span>
                                     <?php else: ?>
-                                        <span class="badge bg-success-subtle text-success border border-success">
+                                        <span class="badge rounded-pill bg-success-subtle text-success border border-success px-2">
                                             <i class="bi bi-box me-1"></i>Físico
                                         </span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php if ($p['status'] === 'active'): ?>
-                                        <span class="badge bg-success-subtle text-success border border-success">Activo</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-danger-subtle text-danger border border-danger">Inactivo</span>
-                                    <?php endif; ?>
+                                    <?php $statusColor = ($p['status'] === 'active') ? 'bg-success' : 'bg-danger'; ?>
+                                    <span class="badge <?= $statusColor ?> rounded-circle p-1 me-1"></span>
+                                    <small
+                                        class="fw-semibold <?= ($p['status'] === 'active') ? 'text-success' : 'text-danger' ?>">
+                                        <?= ucfirst($p['status']) ?>
+                                    </small>
                                 </td>
-                                <td class="text-end pe-3">
-                                    <?php $imgCount = count($imgs); ?>
-                                    <a href="<?= APP_URL ?>admin/producto_editar/<?= $p['id'] ?>"
-                                        class="btn btn-sm btn-outline-secondary me-1" title="Editar + Ver galería">
-                                        <i class="bi bi-pencil"></i>
-                                        <?php if ($imgCount < 5): ?>
-                                            <span class="badge bg-warning text-dark ms-1"
-                                                title="Puede agregar más imágenes">+</span>
-                                        <?php endif; ?>
-                                    </a>
-                                    <button class="btn btn-sm btn-outline-danger" title="Eliminar producto"
-                                        onclick="confirmarEliminar(<?= $p['id'] ?>, '<?= addslashes($p['name']) ?>')">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
+                                <td class="text-end pe-4">
+                                    <div class="dropdown">
+                                        <button class="btn btn-light btn-sm rounded-circle shadow-sm" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
+                                            <li><a class="dropdown-item py-2"
+                                                    href="<?= APP_URL ?>admin/producto_editar/<?= $p['id'] ?>">
+                                                    <i class="bi bi-pencil me-2 text-primary"></i> Editar Detalle</a></li>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li><button class="dropdown-item py-2 text-danger"
+                                                    onclick="confirmarEliminar(<?= $p['id'] ?>, '<?= addslashes($p['name']) ?>')">
+                                                    <i class="bi bi-trash3 me-2"></i> Eliminar</button></li>
+                                        </ul>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -163,22 +164,41 @@ foreach ($allImages as $img) {
             </table>
         </div>
     </div>
-</div>
+    <!-- Paginación Footer -->
+    <?php if ($totalPages > 1): ?>
+        <div class="card-footer bg-white py-3 border-0">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0 gap-1">
+                    <?php if ($currentPage > 1): ?>
+                        <li class="page-item">
+                            <a class="page-link rounded-circle border-0 shadow-sm mx-1"
+                                href="<?= APP_URL ?>admin/productos?p=<?= $currentPage - 1 ?>&s=<?= urlencode($search) ?>&sort=<?= $sort ?>&dir=<?= $dir ?>">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                    <?php endif; ?>
 
-<!-- Leyenda de badges de fuente -->
-<div class="mt-3 d-flex gap-3 flex-wrap">
-    <small class="text-muted d-flex align-items-center gap-1">
-        <span class="badge bg-success p-1" style="font-size:8px;">L</span> Local (WebP comprimido)
-    </small>
-    <small class="text-muted d-flex align-items-center gap-1">
-        <span class="badge bg-secondary p-1" style="font-size:8px;">URL</span> URL externa
-    </small>
-    <small class="text-muted d-flex align-items-center gap-1">
-        <span class="badge bg-info p-1" style="font-size:8px;">BB</span> ImgBB CDN
-    </small>
-    <small class="text-muted d-flex align-items-center gap-1">
-        <span style="color:#f6c90e;">★</span> Imagen de portada del catálogo
-    </small>
+                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                        <li class="page-item <?= ($i === $currentPage) ? 'active' : '' ?>">
+                            <a class="page-link rounded-circle border-0 shadow-sm mx-1 <?= ($i === $currentPage) ? 'bg-primary text-white' : 'bg-light text-dark' ?>"
+                                href="<?= APP_URL ?>admin/productos?p=<?= $i ?>&s=<?= urlencode($search) ?>&sort=<?= $sort ?>&dir=<?= $dir ?>">
+                                <?= $i ?>
+                            </a>
+                        </li>
+                    <?php endfor; ?>
+
+                    <?php if ($currentPage < $totalPages): ?>
+                        <li class="page-item">
+                            <a class="page-link rounded-circle border-0 shadow-sm mx-1"
+                                href="<?= APP_URL ?>admin/productos?p=<?= $currentPage + 1 ?>&s=<?= urlencode($search) ?>&sort=<?= $sort ?>&dir=<?= $dir ?>">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                </ul>
+            </nav>
+        </div>
+    <?php endif; ?>
 </div>
 
 <!-- SweetAlert2 Confirm Eliminar -->
@@ -187,13 +207,15 @@ foreach ($allImages as $img) {
     function confirmarEliminar(id, nombre) {
         Swal.fire({
             title: '¿Eliminar producto?',
-            html: `<b>${nombre}</b><br><small class="text-muted">Se eliminarán también todas las imágenes asociadas.</small>`,
+            html: `<div class="p-3 bg-light rounded-3 mb-3 border"><b>${nombre}</b></div>
+                   <p class="text-muted small mb-0">Esta acción no se puede deshacer y eliminará todas las imágenes de galería asociadas.</p>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef233c',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="bi bi-trash3"></i> Sí, eliminar',
-            cancelButtonText: 'Cancelar'
+            cancelButtonColor: '#adb5bd',
+            confirmButtonText: 'Sí, eliminar permanentemente',
+            cancelButtonText: 'Cancelar',
+            customClass: { popup: 'rounded-4 border-0 shadow' }
         }).then(result => {
             if (result.isConfirmed) {
                 window.location.href = `<?= APP_URL ?>admin/producto_eliminar/${id}`;
@@ -201,3 +223,41 @@ foreach ($allImages as $img) {
         });
     }
 </script>
+
+<style>
+    .table thead th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 15px 10px;
+        border: none;
+    }
+
+    .pagination .page-link {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .page-item.active .page-link {
+        background-color: var(--bs-primary);
+        border-color: var(--bs-primary);
+    }
+
+    .product-preview-box img {
+        transition: transform 0.2s;
+    }
+
+    .product-preview-box img:hover {
+        transform: scale(1.1);
+        z-index: 10;
+        cursor: pointer;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(var(--bs-primary-rgb), 0.03);
+    }
+</style>

@@ -32,8 +32,13 @@ const Cart = {
         const items = this.get();
         const idx = items.findIndex(i => i.id == product.id);
         if (idx > -1) {
-            items[idx].qty += product.qty;
-            items[idx].price = product.price; // precio actual (puede ser docena)
+            // Si es digital, mantenemos cantidad 1. Si es físico, sumamos.
+            if (product.is_digital) {
+                items[idx].qty = 1;
+            } else {
+                items[idx].qty += product.qty;
+            }
+            items[idx].price = product.price;
             items[idx].note = product.note || items[idx].note;
             items[idx].logo_url = product.logo_url || items[idx].logo_url;
         } else {
@@ -58,11 +63,18 @@ const Cart = {
 
     updateBadge() {
         const b = document.getElementById('cart-badge');
+        const bf = document.getElementById('cart-float-count');
+        const n = Cart.count();
+
         if (b) {
-            const n = Cart.count();
             b.textContent = n;
             b.style.display = n > 0 ? 'flex' : 'none';
         }
+        if (bf) {
+            bf.textContent = n;
+            bf.style.display = n > 0 ? 'flex' : 'none';
+        }
+
         // Actualizar panel flotante si está abierto
         if (document.getElementById('cart-panel')?.classList.contains('open')) {
             Cart.renderPanel();
@@ -161,10 +173,14 @@ function openProductModal(data) {
 
     // Tipo
     const isDigital = !!data.is_digital;
+    const priceDozenEl = modal.querySelector('#modal-price-dozen');
     modal.querySelector('#modal-badge').textContent = isDigital ? 'Diseño Digital' : 'Artículo Físico';
     modal.querySelector('#modal-badge').className = isDigital
         ? 'badge rounded-pill bg-primary me-2'
         : 'badge rounded-pill bg-success me-2';
+
+    // Ocultar precio docena si es digital
+    if (priceDozenEl) priceDozenEl.style.display = isDigital ? 'none' : '';
 
     // Personalización del cliente
     modal.querySelector('#note-group').style.display = data.allow_note ? 'block' : 'none';
@@ -176,7 +192,12 @@ function openProductModal(data) {
     const qtyInput = modal.querySelector('#modal-qty');
     const priceDisp = modal.querySelector('#modal-price-display');
     const dozenBadge = modal.querySelector('#modal-dozen-badge');
+    const qtyGroup = modal.querySelector('#modal-qty-group');
+
     qtyInput.value = 1;
+
+    // Si es digital, ocultamos el grupo de cantidad completo
+    if (qtyGroup) qtyGroup.style.display = isDigital ? 'none' : 'block';
 
     function updatePrice() {
         const q = parseInt(qtyInput.value) || 1;
@@ -287,7 +308,67 @@ function openCheckout() {
             <td class="text-end fw-bold">$${(i.price * i.qty).toFixed(2)}</td>
         </tr>
     `).join('');
-    document.getElementById('checkout-total-display').textContent = '$' + Cart.total().toFixed(2);
+    const total = Cart.total();
+    document.getElementById('checkout-total-display').textContent = '$' + total.toFixed(2);
+
+    // Costo de envío e IVA
+    const shippingCost = (typeof COMPANY !== 'undefined' && COMPANY.shipping_cost) ? parseFloat(COMPANY.shipping_cost) : 0;
+    const taxRate = (typeof COMPANY !== 'undefined' && COMPANY.tax_rate) ? parseFloat(COMPANY.tax_rate) : 0;
+    const shippingCheck = document.getElementById('co-shipping');
+    const invoiceCheck = document.getElementById('co-invoice');
+
+    const divCoId = document.getElementById('div-co-id');
+    const divCoAddress = document.getElementById('div-co-address');
+
+    const divTax = document.getElementById('div-checkout-tax');
+    const divShipping = document.getElementById('div-checkout-shipping');
+
+    document.getElementById('checkout-subtotal-display').textContent = '$' + total.toFixed(2);
+    if (document.getElementById('co-shipping-val')) {
+        document.getElementById('co-shipping-val').textContent = shippingCost.toFixed(2);
+    }
+
+    const updateTotal = () => {
+        const isShipping = shippingCheck?.checked || false;
+        const isInvoice = invoiceCheck?.checked || false;
+
+        // Visibilidad de campos
+        if (divCoAddress) divCoAddress.style.display = isShipping ? 'block' : 'none';
+        if (divCoId) divCoId.style.display = (isShipping || isInvoice) ? 'block' : 'none';
+
+        // Visibilidad y valores de desglose
+        if (divShipping) {
+            divShipping.style.display = isShipping ? 'flex' : 'none';
+            document.getElementById('checkout-shipping-display').textContent = '$' + shippingCost.toFixed(2);
+        }
+
+        let subtotalConEnvio = total + (isShipping ? shippingCost : 0);
+        let taxAmount = 0;
+
+        if (isInvoice) {
+            taxAmount = subtotalConEnvio * (taxRate / 100);
+            if (divTax) {
+                divTax.style.display = 'flex';
+                document.getElementById('checkout-tax-display').textContent = '$' + taxAmount.toFixed(2);
+            }
+        } else if (divTax) {
+            divTax.style.display = 'none';
+        }
+
+        const finalTotal = subtotalConEnvio + taxAmount;
+        document.getElementById('checkout-total-display').textContent = '$' + finalTotal.toFixed(2);
+    };
+
+    if (shippingCheck) {
+        shippingCheck.checked = false;
+        shippingCheck.onchange = updateTotal;
+    }
+    if (invoiceCheck) {
+        invoiceCheck.checked = false;
+        invoiceCheck.onchange = updateTotal;
+    }
+
+    updateTotal(); // Ejecución inicial
     modal.show();
 }
 
@@ -296,27 +377,64 @@ function generateProforma() {
     const email = document.getElementById('co-email').value.trim();
     const city = document.getElementById('co-city').value.trim();
     const phone = document.getElementById('co-phone').value.trim();
+    const cid = document.getElementById('co-id').value.trim();
     const addr = document.getElementById('co-address').value.trim();
+
+    const isShipping = document.getElementById('co-shipping')?.checked;
+    const isInvoice = document.getElementById('co-invoice')?.checked;
 
     if (!name || !email || !city) {
         Swal.fire('Datos incompletos', 'Completa Nombre, Email y Ciudad.', 'warning');
         return;
     }
 
+    // Validar condicionales
+    if ((isShipping || isInvoice) && !cid) {
+        Swal.fire('Atención', 'Por favor ingresa tu Cédula o RUC.', 'warning');
+        return;
+    }
+    if (isShipping && !addr) {
+        Swal.fire('Atención', 'Por favor ingresa la dirección de entrega.', 'warning');
+        return;
+    }
+
     const items = Cart.get();
-    const total = Cart.total();
+    const subtotal = Cart.total();
+    const shippingCost = isShipping ? ((typeof COMPANY !== 'undefined' && COMPANY.shipping_cost) ? parseFloat(COMPANY.shipping_cost) : 0) : 0;
+    const taxRate = isInvoice ? ((typeof COMPANY !== 'undefined' && COMPANY.tax_rate) ? parseFloat(COMPANY.tax_rate) : 0) : 0;
+
+    let subtotalConEnvio = subtotal + shippingCost;
+    const taxAmount = isInvoice ? (subtotalConEnvio * (taxRate / 100)) : 0;
+    const total = subtotalConEnvio + taxAmount;
+
     const now = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' });
     const logo = (typeof COMPANY !== 'undefined' && COMPANY.logo) ? `<img src="${COMPANY.logo}" style="max-height:60px;max-width:200px;object-fit:contain;" alt="Logo">` : '';
     const coName = (typeof COMPANY !== 'undefined' && COMPANY.name) ? COMPANY.name : 'Catálogo Láser';
+    const eslogan = (typeof COMPANY !== 'undefined' && COMPANY.eslogan) ? COMPANY.eslogan : 'Corte Láser | Sublimación | Diseños Digitales';
     const proformaNum = 'PRF-' + Date.now().toString().slice(-6);
+
+    const companyInfoHtml = typeof COMPANY !== 'undefined' ? `
+        <div style="font-size:0.8rem;color:#666;line-height:1.2;margin-top:5px;">
+            ${COMPANY.ruc ? `<div>RUC/NIT: ${COMPANY.ruc}</div>` : ''}
+            ${COMPANY.address ? `<div>${COMPANY.address}</div>` : ''}
+            ${COMPANY.phone ? `<div>Tel: ${COMPANY.phone}</div>` : ''}
+            ${COMPANY.email ? `<div>${COMPANY.email}</div>` : ''}
+        </div>
+    ` : '';
+
+    const footerExtras = typeof COMPANY !== 'undefined' ? `
+        ${COMPANY.thanks ? `<strong>${COMPANY.thanks}</strong><br>` : ''}
+        ${COMPANY.terms ? `<em>${COMPANY.terms}</em><br>` : ''}
+    ` : '';
 
     const html = `
     <div class="proforma-card" id="proforma-print">
-        <div class="proforma-header">
+        <div class="proforma-header d-flex justify-content-between">
             <div>
                 ${logo}
                 <h4 class="mt-2 mb-1" style="color:var(--primary)">${coName}</h4>
-                <small style="color:#888">Corte Láser | Sublimación | Diseños Digitales</small>
+                <small style="color:#888">${eslogan}</small>
+                ${companyInfoHtml}
             </div>
             <div class="text-end">
                 <h5 style="color:var(--primary);font-weight:700">PROFORMA</h5>
@@ -326,6 +444,7 @@ function generateProforma() {
         <div class="row mb-4" style="font-size:.9rem">
             <div class="col-6">
                 <strong>Cliente:</strong> ${name}<br>
+                ${cid ? '<strong>Cédula/RUC:</strong> ' + cid + '<br>' : ''}
                 <strong>Email:</strong> ${email}<br>
                 <strong>Ciudad:</strong> ${city}
                 ${phone ? '<br><strong>Teléfono:</strong> ' + phone : ''}
@@ -350,39 +469,262 @@ function generateProforma() {
                 </tr>`).join('')}
             </tbody>
         </table>
-        <div class="text-end mb-4">
-            <span class="proforma-total">TOTAL: $${total.toFixed(2)}</span>
+        <div class="row g-0">
+            <div class="col-8">
+                ${isInvoice ? `
+                    <div class="alert alert-light border-0 small text-muted px-0 mt-2">
+                        <i class="bi bi-info-circle me-1"></i> Se ha aplicado un <strong>${taxRate}% de IVA</strong> por concepto de facturación electrónica.
+                    </div>
+                ` : ''}
+            </div>
+            <div class="col-4 border rounded p-3 bg-light">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <span>$${subtotal.toFixed(2)}</span>
+                </div>
+                ${isShipping ? `
+                <div class="d-flex justify-content-between mb-2 text-primary">
+                    <span>Envío (Courier):</span>
+                    <span>$${shippingCost.toFixed(2)}</span>
+                </div>
+                ` : ''}
+                ${isInvoice ? `
+                <div class="d-flex justify-content-between mb-2 text-success">
+                    <span>IVA (${taxRate}%):</span>
+                    <span>$${taxAmount.toFixed(2)}</span>
+                </div>
+                ` : ''}
+                <div class="d-flex justify-content-between fw-bold border-top pt-2 mt-2" style="font-size:1.2rem">
+                    <span>TOTAL:</span>
+                    <span class="text-danger">$${total.toFixed(2)}</span>
+                </div>
+            </div>
         </div>
-        <div style="color:#888;font-size:.8rem;border-top:1px solid #eee;padding-top:12px">
+        </div>
+        <div style="color:#888;font-size:.8rem;border-top:1px solid #eee;padding-top:12px;text-align:center;">
+            ${footerExtras}
             Esta proforma es válida por 48 horas. Los precios pueden cambiar sin previo aviso.
         </div>
     </div>`;
 
-    const proformaModal = new bootstrap.Modal(document.getElementById('proformaModal'));
-    document.getElementById('proforma-container').innerHTML = html;
-    bootstrap.Modal.getInstance(document.getElementById('checkoutModal'))?.hide();
-    proformaModal.show();
+    // Preparar datos para el servidor
+    const orderData = {
+        customer_name: name,
+        customer_id: cid,
+        customer_email: email,
+        customer_phone: phone,
+        customer_city: city,
+        customer_address: addr,
+        subtotal: subtotal,
+        shipping_amount: isShipping ? shippingCost : 0,
+        tax_amount: isInvoice ? taxAmount : 0,
+        needs_shipping: isShipping ? 1 : 0,
+        needs_invoice: isInvoice ? 1 : 0,
+        total_amount: total,
+        items: items
+    };
+
+    // Guardar en BD vía AJAX
+    Swal.fire({
+        title: 'Procesando pedido...',
+        html: 'Estamos guardando su proforma...',
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    fetch(APP_URL + 'cotizacion/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+    })
+        .then(r => r.json())
+        .then(res => {
+            Swal.close();
+            if (res.status === 'success') {
+                orderData.id = res.order_id;
+                window.currentProformaData = orderData;
+                window.currentProformaNum = proformaNum;
+
+                const proformaModal = new bootstrap.Modal(document.getElementById('proformaModal'));
+                document.getElementById('proforma-container').innerHTML = html;
+
+                // Cerrar checkout y abrir proforma
+                bootstrap.Modal.getInstance(document.getElementById('checkoutModal'))?.hide();
+                proformaModal.show();
+
+                // Vaciar carrito
+                Cart.clear();
+                Cart.renderPanel();
+            } else {
+                Swal.fire('Error', res.message || 'No se pudo guardar el pedido.', 'error');
+            }
+        })
+        .catch(err => {
+            Swal.close();
+            console.error(err);
+            Swal.fire('Error', 'Error de comunicación con el servidor.', 'error');
+        });
+}
+
+function generateExportableHtml(d, profNum) {
+    const logoHtml = (typeof COMPANY !== 'undefined' && COMPANY.logo) ? `<img src="${COMPANY.logo}" style="max-height: 80px; max-width: 250px; object-fit: contain;">` : `<h2 style="margin:0;color:#0275d8;">${(typeof COMPANY !== 'undefined' && COMPANY.name) ? COMPANY.name : 'Proforma'}</h2>`;
+    const co = typeof COMPANY !== 'undefined' ? COMPANY : {};
+
+    const itemsHtml = d.items.map(i => `
+        <tr>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; color: #333;">
+                <strong>${i.name}</strong>
+                ${i.note ? `<div style="font-size: 11px; color: #666; margin-top: 4px;">Nota: ${i.note}</div>` : ''}
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; color: #333;">${i.qty}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; color: #333;">$${parseFloat(i.price).toFixed(2)}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold; color: #333;">$${(i.qty * i.price).toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    const subtotal = d.subtotal;
+    const now = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    return `
+    <div style="width: 800px; padding: 40px 50px; background: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #f0f0f0; padding-bottom: 20px; margin-bottom: 30px;">
+            <div style="max-width: 65%; display: flex; align-items: flex-start; gap: 20px;">
+                ${logoHtml}
+                <div style="font-size: 13px; color: #555; line-height: 1.4;">
+                    <span style="font-size: 18px; font-weight: bold; color: #2c3e50;">${co.name ? co.name : ''}</span><br>
+                    ${co.ruc ? `<strong>RUC:</strong> ${co.ruc}<br>` : ''}
+                    ${co.address ? `${co.address}<br>` : ''}
+                    ${co.city ? `${co.city}<br>` : ''}
+                    ${co.phone ? `<strong>Tel:</strong> ${co.phone}<br>` : ''}
+                    ${co.email ? `<strong>Email:</strong> ${co.email}` : ''}
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <h1 style="margin: 0 0 5px 0; color: #2c3e50; font-size: 28px; font-weight: 700; letter-spacing: 1px;">PROFORMA</h1>
+                <div style="font-size: 16px; color: #e74c3c; font-weight: bold;"># ${d.id || profNum}</div>
+                <div style="font-size: 13px; color: #888; margin-top: 5px;">Fecha: ${now}</div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px; background: #f8f9fa; padding: 10px 15px; border-radius: 8px border-left: 4px solid #0275d8;">
+            <h3 style="margin: 0 0 6px 0; font-size: 12px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px;">Facturar a:</h3>
+            <div style="font-size: 13px; color: #333; line-height: 1.3; display: flex; flex-wrap: wrap; gap: 6px 30px;">
+                <div style="flex: 1 1 100%;"><span style="font-size: 15px; font-weight: bold; color: #0275d8;">${d.customer_name}</span></div>
+                ${d.customer_id ? `<div><strong>RUC/CI:</strong> ${d.customer_id}</div>` : ''}
+                ${d.customer_phone ? `<div><strong>Teléfono:</strong> ${d.customer_phone}</div>` : ''}
+                ${d.customer_email ? `<div><strong>Email:</strong> ${d.customer_email}</div>` : ''}
+                ${d.customer_city ? `<div><strong>Ciudad:</strong> ${d.customer_city}</div>` : ''}
+                ${d.customer_address ? `<div style="flex: 1 1 100%; margin-top:2px;"><strong>Dirección:</strong> ${d.customer_address}</div>` : ''}
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 40px; font-size: 14px; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden;">
+            <thead>
+                <tr>
+                    <th style="padding: 14px 15px; text-align: left; background: #2c3e50; color: white; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Descripción</th>
+                    <th style="padding: 14px 15px; text-align: center; background: #2c3e50; color: white; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Cant.</th>
+                    <th style="padding: 14px 15px; text-align: right; background: #2c3e50; color: white; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">P. Unit</th>
+                    <th style="padding: 14px 15px; text-align: right; background: #2c3e50; color: white; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${itemsHtml}
+            </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: flex-end;">
+            <div style="width: 320px;">
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; color: #555;">
+                    <span>Subtotal:</span>
+                    <span>$${parseFloat(subtotal).toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; color: #555;">
+                    <span>Envío:</span>
+                    <span>$${parseFloat(d.shipping_amount || 0).toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; color: #555;">
+                    <span>IVA (${co.tax_rate ? co.tax_rate : '0'}%):</span>
+                    <span>$${parseFloat(d.tax_amount || 0).toFixed(2)}</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; padding: 10px 0; margin-top: 6px; border-top: 2px solid #2c3e50; font-size: 17px; font-weight: bold; color: #2c3e50;">
+                    <span>TOTAL:</span>
+                    <span style="color: #e74c3c;">$${parseFloat(d.total_amount).toFixed(2)}</span>
+                </div>
+            </div>
+        </div>
+
+        ${co.footer_image ? `<div style="margin-top: 30px; text-align: center;"><img src="${co.footer_image}" style="max-width: 100%; max-height: 120px; border-radius: 8px; object-fit: contain;"></div>` : ''}
+        <div style="margin-top: ${co.footer_image ? '20px' : '40px'}; text-align: center; font-size: 11px; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 15px; line-height: 1.5;">
+            <div style="font-size: 13px; color: #2c3e50; margin-bottom: 5px;"><strong>${co.thanks ? co.thanks : '¡Gracias por su preferencia!'}</strong></div>
+            ${co.terms ? `<em style="color:#999;">${co.terms}</em>` : '<span style="color:#999;font-size: 11px;">Proforma válida por 48 horas laborables.</span>'}
+        </div>
+    </div>`;
 }
 
 function downloadProforma() {
-    const el = document.getElementById('proforma-print');
-    if (!el) return;
+    if (!window.currentProformaData) return;
+    Swal.fire({ title: 'Generando imagen...', didOpen: () => Swal.showLoading() });
 
-    Swal.fire({ title: 'Generando imagen…', didOpen: () => Swal.showLoading() });
-
-    // html2canvas debe estar cargado vía CDN en el footer
     if (typeof html2canvas === 'undefined') {
         Swal.fire('Error', 'La librería html2canvas no está disponible.', 'error');
         return;
     }
 
-    html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
-        Swal.close();
-        const a = document.createElement('a');
-        a.download = 'proforma-' + Date.now() + '.png';
-        a.href = canvas.toDataURL('image/png');
-        a.click();
-    }).catch(() => Swal.fire('Error', 'No se pudo generar la imagen.', 'error'));
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.innerHTML = generateExportableHtml(window.currentProformaData, window.currentProformaNum);
+    document.body.appendChild(container);
+
+    setTimeout(() => {
+        html2canvas(container.firstElementChild, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+            document.body.removeChild(container);
+            Swal.close();
+            const a = document.createElement('a');
+            a.download = 'proforma-' + (window.currentProformaData.id || Date.now()) + '.png';
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+        }).catch(() => {
+            if (document.body.contains(container)) document.body.removeChild(container);
+            Swal.fire('Error', 'No se pudo generar la imagen.', 'error');
+        });
+    }, 300);
+}
+
+function copyProforma() {
+    if (!window.currentProformaData) return;
+    if (typeof html2canvas === 'undefined') {
+        Swal.fire('Error', 'La librería html2canvas no está disponible.', 'error');
+        return;
+    }
+
+    Swal.fire({ title: 'Generando imagen...', didOpen: () => Swal.showLoading() });
+
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.innerHTML = generateExportableHtml(window.currentProformaData, window.currentProformaNum);
+    document.body.appendChild(container);
+
+    setTimeout(() => {
+        html2canvas(container.firstElementChild, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(async canvas => {
+            document.body.removeChild(container);
+            canvas.toBlob(async (blob) => {
+                try {
+                    const item = new ClipboardItem({ "image/png": blob });
+                    await navigator.clipboard.write([item]);
+                    Swal.fire({ icon: 'success', title: '¡Copiado!', text: 'La proforma ha sido copiada al portapapeles.', timer: 2000, showConfirmButton: false });
+                } catch (e) {
+                    Swal.fire('Error', 'No se pudo copiar la imagen al portapapeles.', 'error');
+                }
+            });
+        }).catch(() => {
+            if (document.body.contains(container)) document.body.removeChild(container);
+            Swal.fire('Error', 'No se pudo generar la copia.', 'error');
+        });
+    }, 300);
 }
 
 // ─────────────────────────────────────────
@@ -430,6 +772,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Botón descargar proforma
     document.getElementById('btn-download-proforma')?.addEventListener('click', downloadProforma);
+
+    // Botón copiar proforma
+    document.getElementById('btn-copy-proforma')?.addEventListener('click', copyProforma);
 
     // Botón vaciar carrito desde panel
     document.getElementById('btn-clear-cart')?.addEventListener('click', () => {

@@ -20,4 +20,27 @@ class CategoryModel extends Model
             $data
         );
     }
+
+    public function update($id, $data)
+    {
+        $data['id'] = $id;
+        return $this->db->query(
+            "UPDATE categories SET name = :name, slug = :slug, type = :type WHERE id = :id",
+            $data
+        );
+    }
+
+    public function delete($id)
+    {
+        return $this->db->query("DELETE FROM categories WHERE id = :id", ['id' => $id]);
+    }
+
+    public function isInUse($id)
+    {
+        $res = $this->db->fetch(
+            "SELECT COUNT(*) as total FROM products WHERE category_id = :id",
+            ['id' => $id]
+        );
+        return ((int) ($res['total'] ?? 0)) > 0;
+    }
 }

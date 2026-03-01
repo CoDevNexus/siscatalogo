@@ -55,7 +55,8 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                                     <?= $isImgBBLogo ? 'ImgBB CDN' : 'Servidor Local' ?>
                                 </span>
                                 <div class="text-muted mt-1" style="font-size:.72rem;word-break:break-all">
-                                    <?= htmlspecialchars($company['logo_url']) ?></div>
+                                    <?= htmlspecialchars($company['logo_url']) ?>
+                                </div>
                             <?php else: ?>
                                 <span class="text-muted small">Sin logo configurado</span>
                             <?php endif; ?>
@@ -94,7 +95,8 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                                     <div>
                                         <div class="fw-bold small">Servidor Local</div>
                                         <div class="text-muted" style="font-size:.72rem">Comprimido a WebP en
-                                            <code>assets/img/</code></div>
+                                            <code>assets/img/</code>
+                                        </div>
                                     </div>
                                 </div>
                             </label>
@@ -111,7 +113,7 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                                             <div class="fw-bold small">ImgBB CDN <span class="badge bg-success ms-1"
                                                     style="font-size:.65rem">Recomendado</span></div>
                                             <div class="text-muted" style="font-size:.72rem">URL permanente — ideal para
-                                                proformas portables</div>
+                                                pedidos portables</div>
                                         </div>
                                     </div>
                                 </label>
@@ -122,7 +124,8 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                                         <div>
                                             <div class="fw-bold small text-muted">ImgBB CDN</div>
                                             <div class="text-muted" style="font-size:.72rem">Configura
-                                                <code>IMGBB_API_KEY</code> en <code>config.php</code></div>
+                                                <code>IMGBB_API_KEY</code> en <code>config.php</code>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -273,12 +276,148 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                             <textarea name="terms_conditions" id="inp-terms" class="form-control" rows="2"
                                 placeholder="Ej: Cotización válida por 48 horas."><?= htmlspecialchars($company['terms_conditions'] ?? '') ?></textarea>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-6">
                             <label class="form-label small fw-bold text-muted">Mensaje de Agradecimiento</label>
                             <input type="text" name="thank_you_message" id="inp-thanks" class="form-control"
                                 value="<?= htmlspecialchars($company['thank_you_message'] ?? '¡Gracias por su preferencia!') ?>"
                                 placeholder="¡Gracias por confiar en nosotros!">
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Costo de Envío (Courier)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" step="0.01" name="shipping_cost" class="form-control"
+                                    value="<?= htmlspecialchars($company['shipping_cost'] ?? '0.00') ?>"
+                                    placeholder="0.00">
+                            </div>
+                            <div class="form-text">Costo fijo que se aplicará si el cliente selecciona envío.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Porcentaje de IVA (%)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">%</span>
+                                <input type="number" step="0.01" name="tax_rate" class="form-control"
+                                    value="<?= htmlspecialchars($company['tax_rate'] ?? '0.00') ?>" placeholder="15.00">
+                            </div>
+                            <div class="form-text">Porcentaje de IVA a aplicar si se solicita factura (Ej: 15).</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── PUBLICIDAD PIE DE PÁGINA (PDF) ── -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-image me-2 text-primary"></i>Imagen Publicitaria (Pie de
+                        PDF)</h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-5 text-center mb-3 mb-md-0">
+                            <?php $fImg = $company['footer_image_url'] ?? ''; ?>
+                            <div class="p-3 bg-light rounded-4 border d-flex justify-content-center align-items-center"
+                                id="footer_image_preview_container"
+                                style="min-height: 120px; border-style: dashed !important;">
+                                <?php if ($fImg): ?>
+                                    <img id="footer_image_preview"
+                                        src="<?= APP_URL . htmlspecialchars($fImg) ?>?t=<?= time() ?>"
+                                        style="max-height: 100px; max-width: 100%; object-fit: contain;">
+                                <?php else: ?>
+                                    <div id="footer_image_placeholder" class="text-muted small">
+                                        <i class="bi bi-card-image fs-3 d-block mb-1"></i> Sin imagen publicitaria
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label small fw-bold text-muted">Subir Nueva Imagen</label>
+                            <input type="file" name="footer_image" id="footer_image" class="form-control mb-2"
+                                accept="image/png, image/jpeg, image/webp" onchange="previewFooterImage(this)">
+                            <div class="form-text mt-0">
+                                <i class="bi bi-info-circle me-1"></i> Se recomienda formato apaisado (horizontal)
+                                ancho, idealmente PNG, JPG o WebP. Se mostrará en la parte final de las exportaciones en
+                                PDF o Imagen.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── CONFIGURACIÓN DE CORREO (SMTP) ── -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div
+                    class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-envelope-at me-2 text-primary"></i>Configuración de Correo
+                        (SMTP)</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-primary dropdown-toggle rounded-pill" type="button"
+                            data-bs-toggle="dropdown">
+                            Preajustes Rápidos
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="applySmtpPreset('gmail')">Google / Gmail</a>
+                            </li>
+                            <li><a class="dropdown-item" href="#" onclick="applySmtpPreset('outlook')">Outlook / Office
+                                    365</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="applySmtpPreset('clear')">Limpiar</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold text-muted">Servidor SMTP (Host)</label>
+                            <input type="text" name="smtp_host" id="smtp_host" class="form-control"
+                                value="<?= htmlspecialchars($company['smtp_host'] ?? '') ?>"
+                                placeholder="smtp.gmail.com">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted">Puerto</label>
+                            <input type="number" name="smtp_port" id="smtp_port" class="form-control"
+                                value="<?= htmlspecialchars($company['smtp_port'] ?? '587') ?>" placeholder="587">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Usuario / Email</label>
+                            <input type="text" name="smtp_user" id="smtp_user" class="form-control"
+                                value="<?= htmlspecialchars($company['smtp_user'] ?? '') ?>"
+                                placeholder="tu-email@gmail.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">Contraseña</label>
+                            <div class="input-group">
+                                <input type="password" name="smtp_pass" id="smtp_pass" class="form-control"
+                                    value="<?= htmlspecialchars($company['smtp_pass'] ?? '') ?>" placeholder="********">
+                                <button class="btn btn-outline-secondary" type="button"
+                                    onclick="togglePass('smtp_pass')">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted">Cifrado</label>
+                            <select name="smtp_encryption" id="smtp_encryption" class="form-select">
+                                <option value="tls" <?= ($company['smtp_encryption'] ?? 'tls') === 'tls' ? 'selected' : '' ?>>TLS (Recomendado)</option>
+                                <option value="ssl" <?= ($company['smtp_encryption'] ?? '') === 'ssl' ? 'selected' : '' ?>>
+                                    SSL</option>
+                                <option value="none" <?= ($company['smtp_encryption'] ?? '') === 'none' ? 'selected' : '' ?>>Ninguno</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold text-muted">Enviar como (Email Remitente)</label>
+                            <input type="email" name="smtp_from_email" id="smtp_from_email" class="form-control"
+                                value="<?= htmlspecialchars($company['smtp_from_email'] ?? '') ?>"
+                                placeholder="ventas@tuempresa.com">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted">Nombre del Remitente</label>
+                            <input type="text" name="smtp_from_name" id="smtp_from_name" class="form-control"
+                                value="<?= htmlspecialchars($company['smtp_from_name'] ?? '') ?>"
+                                placeholder="Laser Studio - Ventas">
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3 mb-0 py-2 border-0" style="font-size: .8rem;">
+                        <i class="bi bi-info-circle me-1"></i> Para <strong>Gmail</strong>, usa una "Contraseña de
+                        Aplicación". El puerto suele ser 587 con TLS.
                     </div>
                 </div>
             </div>
@@ -328,14 +467,17 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                                 <?php endif; ?>
                             </div>
                             <div id="pv-name" class="fw-bold text-dark" style="font-size:1rem">
-                                <?= htmlspecialchars($company['name'] ?? 'Mi Empresa') ?></div>
+                                <?= htmlspecialchars($company['name'] ?? 'Mi Empresa') ?>
+                            </div>
                             <div id="pv-eslogan" class="text-muted" style="font-size:.72rem">
-                                <?= htmlspecialchars($company['eslogan'] ?? '') ?></div>
+                                <?= htmlspecialchars($company['eslogan'] ?? '') ?>
+                            </div>
                         </div>
                         <div class="text-end">
                             <div class="fw-bold text-dark">PROFORMA</div>
                             <div class="text-muted" style="font-size:.7rem">PRF-<?= date('ymd') ?> ·
-                                <?= date('d M Y') ?></div>
+                                <?= date('d M Y') ?>
+                            </div>
                         </div>
                     </div>
                     <div id="pv-addr" class="text-muted mb-2">
@@ -366,9 +508,11 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                     </div>
                     <hr style="margin:8px 0">
                     <div id="pv-terms" class="text-muted" style="font-size:.68rem">
-                        <?= htmlspecialchars($company['terms_conditions'] ?? 'Cotización válida por 48 horas.') ?></div>
+                        <?= htmlspecialchars($company['terms_conditions'] ?? 'Cotización válida por 48 horas.') ?>
+                    </div>
                     <div id="pv-thanks" class="fw-semibold mt-1" style="font-size:.75rem">
-                        <?= htmlspecialchars($company['thank_you_message'] ?? '¡Gracias por su preferencia!') ?></div>
+                        <?= htmlspecialchars($company['thank_you_message'] ?? '¡Gracias por su preferencia!') ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -411,8 +555,6 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
 </div>
 
 <script>
-    const APP_URL = '<?= APP_URL ?>';
-    
     /* ── Estado global ── */
     var _imgs = [], _loaded = false;
 
@@ -479,6 +621,32 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
         });
     }
 
+    /* ── Previsualizar imagen del footer al subir local ── */
+    function previewFooterImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var container = document.getElementById('footer_image_preview_container');
+                var existingImg = document.getElementById('footer_image_preview');
+                var placeholder = document.getElementById('footer_image_placeholder');
+
+                if (existingImg) {
+                    existingImg.src = e.target.result;
+                } else {
+                    if (placeholder) {
+                        placeholder.style.display = 'none';
+                    }
+                    var img = document.createElement('img');
+                    img.id = 'footer_image_preview';
+                    img.src = e.target.result;
+                    img.style = 'max-height: 100px; max-width: 100%; object-fit: contain;';
+                    container.appendChild(img);
+                }
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
     /* ── Seleccionar imagen ── */
     function pickImg(url, source, label) {
         document.getElementById('existing_logo_url').value = url;
@@ -520,7 +688,7 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
             if (m) m.hide();
         } else {
             // Fallback si por alguna razón no hay bootstrap
-            $('#imgBrowserModal').modal('hide'); 
+            $('#imgBrowserModal').modal('hide');
         }
     }
 
@@ -603,4 +771,33 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
             c.addEventListener('input', upd);
         }
     })();
+    /* ── SMTP Lógica ── */
+    function applySmtpPreset(type) {
+        const fields = {
+            gmail: { host: 'smtp.gmail.com', port: 587, enc: 'tls' },
+            outlook: { host: 'smtp.office365.com', port: 587, enc: 'tls' }
+        };
+        if (type === 'clear') {
+            ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from_email', 'smtp_from_name'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            const enc = document.getElementById('smtp_encryption');
+            if (enc) enc.value = 'tls';
+            return;
+        }
+        if (fields[type]) {
+            const host = document.getElementById('smtp_host');
+            const port = document.getElementById('smtp_port');
+            const enc = document.getElementById('smtp_encryption');
+            if (host) host.value = fields[type].host;
+            if (port) port.value = fields[type].port;
+            if (enc) enc.value = fields[type].enc;
+        }
+    }
+
+    function togglePass(id) {
+        const p = document.getElementById(id);
+        if (p) p.type = p.type === 'password' ? 'text' : 'password';
+    }
 </script>

@@ -16,25 +16,113 @@ class ProductoModel extends Model
         );
     }
 
-    public function getActive($categoryId = null, $type = null)
+    /**
+     * Obtiene productos paginados, con búsqueda y ordenación dinámica
+     */
+    public function getPaginated($limit, $offset, $search = '', $sort = 'p.created_at', $order = 'DESC')
     {
-        $where = ["p.status = 'active'"];
         $params = [];
-        if ($categoryId) {
-            $where[] = "p.category_id = :cat_id";
-            $params['cat_id'] = $categoryId;
+        $where = "1=1";
+
+        if (!empty($search)) {
+            $where .= " AND (p.name LIKE :s1 
+                        OR p.description LIKE :s2 
+                        OR c.name LIKE :s3 
+                        OR p.status LIKE :s4)";
+            $params['s1'] = "%$search%";
+            $params['s2'] = "%$search%";
+            $params['s3'] = "%$search%";
+            $params['s4'] = "%$search%";
         }
-        if ($type === 'digital') {
-            $where[] = "p.is_digital = 1";
-        } elseif ($type === 'fisico') {
-            $where[] = "p.is_digital = 0";
+
+        // Validar columnas de ordenación para evitar inyección SQL (whitelist)
+        $allowedSort = [
+            'p.id',
+            'p.name',
+            'p.price_unit',
+            'p.price_dozen',
+            'p.status',
+            'p.is_digital',
+            'p.created_at',
+            'category_name'
+        ];
+        if (!in_array($sort, $allowedSort)) {
+            $sort = 'p.created_at';
         }
+
+        $order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
+
         $sql = "SELECT p.*, c.name AS category_name
                 FROM products p
                 LEFT JOIN categories c ON p.category_id = c.id
-                WHERE " . implode(' AND ', $where) . "
-                ORDER BY p.created_at DESC";
+                WHERE $where
+                ORDER BY $sort $order
+                LIMIT $limit OFFSET $offset";
+
         return $this->db->fetchAll($sql, $params);
+    }
+
+    /**
+     * Cuenta el total de productos filtrados
+     */
+    public function countTotal($search = '')
+    {
+        $params = [];
+        $where = "1=1";
+
+        if (!empty($search)) {
+            $where .= " AND (p.name LIKE :s1 
+                        OR p.description LIKE :s2 
+                        OR c.name LIKE :s3)";
+            $params['s1'] = "%$search%";
+            $params['s2'] = "%$search%";
+            $params['s3'] = "%$search%";
+        }
+
+        $sql = "SELECT COUNT(*) as total 
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE $where";
+
+        $row = $this->db->fetch($sql, $params);
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public function getActive($category_id = null, $type = null, $search = null)
+    {
+        $sql = "SELECT p.*, c.name as category_name 
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                WHERE p.status = 'active'";
+        $params = [];
+
+        if ($category_id) {
+            $sql .= " AND p.category_id = :cat";
+            $params['cat'] = $category_id;
+        }
+        if ($type) {
+            $sql .= " AND c.type = :type"; // Nota: El tipo está en categorías
+            $params['type'] = $type;
+        }
+        if ($search) {
+            $sql .= " AND (p.name LIKE :search1 OR p.description LIKE :search2)";
+            $params['search1'] = "%$search%";
+            $params['search2'] = "%$search%";
+        }
+
+        $sql .= " ORDER BY p.id DESC";
+        return $this->db->fetchAll($sql, $params);
+    }
+
+    public function getFeatured($limit = 6)
+    {
+        $sql = "SELECT p.*, c.name as category_name 
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                WHERE p.status = 'active' 
+                ORDER BY p.id DESC 
+                LIMIT :limit";
+        return $this->db->fetchAll($sql, ['limit' => $limit]);
     }
 
     public function getById($id)
@@ -62,7 +150,8 @@ class ProductoModel extends Model
             'image_url' => ''
         ], $data);
 
-        return $this->db->query($sql, $data);
+        $this->db->query($sql, $data);
+        return $this->getLastId();
     }
 
     public function getLastId()
@@ -115,5 +204,14 @@ class ProductoModel extends Model
     public function delete($id)
     {
         return $this->db->query("DELETE FROM products WHERE id = :id", ['id' => $id]);
+    }
+
+    public function hasOrders($id)
+    {
+        $res = $this->db->fetch(
+            "SELECT COUNT(*) as total FROM order_items WHERE product_id = :id",
+            ['id' => $id]
+        );
+        return ((int) ($res['total'] ?? 0)) > 0;
     }
 }

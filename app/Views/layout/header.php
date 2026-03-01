@@ -6,11 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($title) ? htmlspecialchars($title) . ' – ' . APP_NAME : APP_NAME ?></title>
     <meta name="description"
-        content="Catálogo de productos láser personalizados: MDF, acrílico, sublimación y vectores digitales.">
+        content="<?= isset($item['meta_description']) ? htmlspecialchars($item['meta_description']) : 'Catálogo de productos láser personalizados: MDF, acrílico, sublimación y vectores digitales.' ?>">
 
     <?php
     $db = \App\Core\Database::getInstance();
-    $company = $db->fetch("SELECT name, logo_url, phone_whatsapp, whatsapp, facebook_url, facebook, instagram, address FROM company_profile WHERE id = 1");
+    $company = $db->fetch("SELECT * FROM company_profile WHERE id = 1");
     $companyName = !empty($company['name']) ? htmlspecialchars($company['name']) : APP_NAME;
     $logoUrl = null;
     if (!empty($company['logo_url'])) {
@@ -44,9 +44,20 @@
         const COMPANY = {
             name: '<?= addslashes($companyName) ?>',
             logo: '<?= $logoUrl ? addslashes($logoUrl) : '' ?>',
-            whatsapp: '<?= addslashes($company['whatsapp'] ?? $company['phone'] ?? '') ?>',
+            eslogan: '<?= addslashes($company['eslogan'] ?? '') ?>',
+            ruc: '<?= addslashes($company['ruc_nit'] ?? '') ?>',
+            address: '<?= addslashes($company['address'] ?? '') ?>',
+            city: '<?= addslashes($company['ciudad'] ?? '') ?>',
+            phone: '<?= addslashes($company['whatsapp'] ?? '') ?>',
+            email: '<?= addslashes($company['email'] ?? '') ?>',
+            whatsapp: '<?= addslashes($company['whatsapp'] ?? '') ?>',
             facebook: '<?= addslashes($company['facebook'] ?? '') ?>',
             instagram: '<?= addslashes($company['instagram'] ?? '') ?>',
+            shipping_cost: <?= (float) ($company['shipping_cost'] ?? 0) ?>,
+            tax_rate: <?= (float) ($company['tax_rate'] ?? 0) ?>,
+            terms: `<?= addslashes($company['terms_conditions'] ?? '') ?>`,
+            thanks: `<?= addslashes($company['thank_you_message'] ?? '') ?>`,
+            footer_image: '<?= !empty($company['footer_image_url']) ? (str_starts_with($company['footer_image_url'], 'http') ? addslashes($company['footer_image_url']) : APP_URL . addslashes($company['footer_image_url'])) : '' ?>'
         };
     </script>
 </head>
@@ -83,7 +94,7 @@
                         <a class="nav-link premium-nav-link" href="<?= APP_URL ?>?tipo=digital">Digitales</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link premium-nav-link" href="<?= APP_URL ?>portfolio">Portafolio</a>
+                        <a class="nav-link premium-nav-link" href="<?= APP_URL ?>portafolio">Portafolio</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link premium-nav-link" href="<?= APP_URL ?>nosotros">Empresa</a>
@@ -98,6 +109,14 @@
                             <i class="bi bi-whatsapp me-1"></i>WhatsApp
                         </a>
                     <?php endif; ?>
+
+                    <!-- Portal Digital -->
+                    <a href="<?= APP_URL ?>digital/login"
+                        class="btn btn-outline-info rounded-pill px-3 py-1 fw-semibold border-2"
+                        style="font-size:.85rem">
+                        <i class="bi bi-cloud-arrow-down-fill me-1"></i>Portal
+                    </a>
+
                     <!-- Carrito -->
                     <a href="#" class="btn btn-outline-light rounded-pill px-4 position-relative" data-open-cart>
                         <i class="bi bi-cart3 me-1"></i>Pedido

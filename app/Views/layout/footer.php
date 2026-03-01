@@ -1,6 +1,14 @@
 </main>
 
 <!-- ─── Footer Premium ─── -->
+<!-- Carrito Flotante (Inferior Izquierda) -->
+<div id="cart-float" data-open-cart style="cursor:pointer">
+    <button class="cart-float-btn">
+        <i class="bi bi-cart3"></i>
+        <span class="cart-float-count" id="cart-float-count" style="display:none">0</span>
+    </button>
+</div>
+
 <footer class="footer-premium">
     <div class="container">
         <div class="row g-5 pb-4">
@@ -92,7 +100,8 @@
                 <?php if (!empty($co['address'])): ?>
                     <p class="mb-2" style="font-size:.88rem">
                         <i class="bi bi-geo-alt me-2 text-danger"></i>
-                        <?= htmlspecialchars($co['address']) ?>    <?= !empty($co['ciudad']) ? ', ' . htmlspecialchars($co['ciudad']) : '' ?>
+                        <?= htmlspecialchars($co['address']) ?>
+                        <?= !empty($co['ciudad']) ? ', ' . htmlspecialchars($co['ciudad']) : '' ?>
                     </p>
                 <?php endif; ?>
                 <?php if (!empty($co['email'])): ?>
@@ -114,7 +123,8 @@
         <hr class="footer-divider">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2" style="font-size:.82rem">
             <span>&copy; <?= date('Y') ?> <?= $coNameF ?>. Todos los derechos reservados.</span>
-            <span style="opacity:.5">Desarrollado por <a href="https://codevnexus.tech/" target="_blank" class="text-decoration-none fw-bold text-white shadow-sm">CoDevNexus</a></span>
+            <span style="opacity:.5">Desarrollado por <a href="https://codevnexus.tech/" target="_blank"
+                    class="text-decoration-none fw-bold text-white shadow-sm">CoDevNexus</a></span>
         </div>
     </div>
 </footer>

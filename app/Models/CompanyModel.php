@@ -44,7 +44,16 @@ class CompanyModel extends Model
                     description       = :description,
                     terms_conditions  = :terms_conditions,
                     thank_you_message = :thank_you_message,
-                    maps_embed        = :maps_embed
+                    maps_embed        = :maps_embed,
+                    shipping_cost     = :shipping_cost,
+                    tax_rate          = :tax_rate,
+                    smtp_host         = :smtp_host,
+                    smtp_port         = :smtp_port,
+                    smtp_user         = :smtp_user,
+                    smtp_pass         = :smtp_pass,
+                    smtp_encryption   = :smtp_encryption,
+                    smtp_from_email   = :smtp_from_email,
+                    smtp_from_name    = :smtp_from_name
                 WHERE id = 1";
 
         $wa = $data['phone_whatsapp'] ?? '';
@@ -68,6 +77,15 @@ class CompanyModel extends Model
             'terms_conditions' => $data['terms_conditions'] ?? '',
             'thank_you_message' => $data['thank_you_message'] ?? '',
             'maps_embed' => $data['maps_embed'] ?? '',
+            'shipping_cost' => (float) ($data['shipping_cost'] ?? 0),
+            'tax_rate' => (float) ($data['tax_rate'] ?? 0),
+            'smtp_host' => $data['smtp_host'] ?? '',
+            'smtp_port' => (int) ($data['smtp_port'] ?? 587),
+            'smtp_user' => $data['smtp_user'] ?? '',
+            'smtp_pass' => $data['smtp_pass'] ?? '',
+            'smtp_encryption' => $data['smtp_encryption'] ?? 'tls',
+            'smtp_from_email' => $data['smtp_from_email'] ?? '',
+            'smtp_from_name' => $data['smtp_from_name'] ?? '',
         ]);
     }
 
@@ -81,5 +99,17 @@ class CompanyModel extends Model
     {
         $row = $this->db->fetch("SELECT logo_url FROM company_profile WHERE id = 1");
         return $row['logo_url'] ?? null;
+    }
+
+    public function updateFooterImage(string $imageUrl): bool
+    {
+        $sql = "UPDATE company_profile SET footer_image_url = :footer_image_url WHERE id = 1";
+        return (bool) $this->db->query($sql, ['footer_image_url' => $imageUrl]);
+    }
+
+    public function getFooterImagePath(): ?string
+    {
+        $row = $this->db->fetch("SELECT footer_image_url FROM company_profile WHERE id = 1");
+        return $row['footer_image_url'] ?? null;
     }
 }

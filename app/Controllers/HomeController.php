@@ -8,20 +8,18 @@ class HomeController extends Controller
     public function index()
     {
         $productoModel = $this->model('ProductoModel');
-        $categoryModel = $this->model('CategoryModel');
+        $portfolioModel = $this->model('PortfolioModel');
 
-        $filterCat = isset($_GET['cat']) ? (int) $_GET['cat'] : null;
-        $filterType = isset($_GET['tipo']) ? $_GET['tipo'] : null;
+        // Cargar 6 productos destacados (los más recientes activos)
+        $productos = $productoModel->getFeatured(6);
 
-        $productos = $productoModel->getActive($filterCat, $filterType);
-        $categorias = $categoryModel->getAll();
+        // Cargar 3 casos de éxito más recientes
+        $casos = $portfolioModel->getAll(3, 0);
 
         $data = [
-            'title' => 'Catálogo de Productos',
+            'title' => 'Inicio',
             'productos' => $productos,
-            'categorias' => $categorias,
-            'filterCat' => $filterCat,
-            'filterType' => $filterType,
+            'casos' => $casos,
         ];
 
         $this->view('home/index', $data);
@@ -50,6 +48,13 @@ class HomeController extends Controller
     {
         $this->view('home/nosotros', [
             'title' => 'Sobre Nosotros',
+        ]);
+    }
+
+    public function descargas()
+    {
+        $this->view('home/descargas', [
+            'title' => 'Acceso a Productos Digitales',
         ]);
     }
 }

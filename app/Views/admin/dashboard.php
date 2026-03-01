@@ -1,10 +1,12 @@
 <?php
 $db = \App\Core\Database::getInstance();
 
-$totalProductos = $db->fetch("SELECT COUNT(*) AS c FROM products WHERE status='active'")['c'] ?? 0;
+$totalProductos = $db->fetch("SELECT COUNT(*) AS c FROM products")['c'] ?? 0;
 $totalProformas = $db->fetch("SELECT COUNT(*) AS c FROM orders WHERE status='pending'")['c'] ?? 0;
 $totalDigitales = $db->fetch("SELECT COUNT(*) AS c FROM digital_access WHERE downloads_count = 0")['c'] ?? 0;
-$totalPortfolio = $db->fetch("SELECT COUNT(*) AS c FROM success_cases")['c'] ?? 0;
+// Corregido: La tabla es portfolio, no success_cases
+$totalPortfolio = $db->fetch("SELECT COUNT(*) AS c FROM portfolio")['c'] ?? 0;
+$totalCategorias = $db->fetch("SELECT COUNT(*) AS c FROM categories")['c'] ?? 0;
 
 $ultimasProformas = $db->fetchAll("SELECT * FROM orders ORDER BY created_at DESC LIMIT 5") ?? [];
 $ultimosProductos = $db->fetchAll("SELECT name, price_unit, is_digital, status FROM products ORDER BY created_at DESC LIMIT 5") ?? [];
@@ -12,69 +14,97 @@ $ultimosProductos = $db->fetchAll("SELECT name, price_unit, is_digital, status F
 
 <!-- Stats Cards -->
 <div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-primary border-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted fw-bold mb-1">Proformas Pendientes</h6>
-                        <h3 class="mb-0 fw-bold"><?= $totalProformas ?></h3>
-                    </div>
-                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
-                        <i class="bi bi-cart3 fs-4"></i>
-                    </div>
-                </div>
-                <a href="<?= APP_URL ?>admin/ventas" class="text-primary text-decoration-none small">Ver todas →</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-success border-4">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted fw-bold mb-1">Entregas Pendientes</h6>
-                        <h3 class="mb-0 fw-bold text-success"><?= $totalDigitales ?></h3>
-                    </div>
-                    <div class="bg-success bg-opacity-10 p-3 rounded-circle text-success">
-                        <i class="bi bi-cloud-arrow-down fs-4"></i>
-                    </div>
-                </div>
-                <a href="<?= APP_URL ?>admin/digitales" class="text-success text-decoration-none small">Ver digitales
-                    →</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <a href="<?= APP_URL ?>admin/productos" class="text-decoration-none">
-            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-warning border-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted fw-bold mb-1">Total Productos</h6>
-                            <h3 class="mb-0 fw-bold"><?= $totalProductos ?></h3>
+    <div class="col-md-4 col-xl-2">
+        <a href="<?= APP_URL ?>admin/pedidos" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-primary border-4">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded-3 text-primary">
+                            <i class="bi bi-cart3 fs-5"></i>
                         </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
-                            <i class="bi bi-box-seam fs-4"></i>
-                        </div>
+                        <h4 class="mb-0 fw-bold"><?= $totalProformas ?></h4>
                     </div>
+                    <h6 class="text-muted small fw-bold mb-0">Pedidos Pendientes</h6>
                 </div>
             </div>
         </a>
     </div>
-    <div class="col-md-3">
-        <a href="<?= APP_URL ?>admin/portfolio" class="text-decoration-none">
-            <div class="card border-0 shadow-sm rounded-3 h-100 border-start border-info border-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted fw-bold mb-1">Casos de Éxito</h6>
-                            <h3 class="mb-0 fw-bold"><?= $totalPortfolio ?></h3>
+
+    <div class="col-md-4 col-xl-2">
+        <a href="<?= APP_URL ?>admin/digitales" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-success border-4">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="bg-success bg-opacity-10 p-2 rounded-3 text-success">
+                            <i class="bi bi-cloud-arrow-down fs-5"></i>
                         </div>
-                        <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info">
-                            <i class="bi bi-image fs-4"></i>
-                        </div>
+                        <h4 class="mb-0 fw-bold text-success"><?= $totalDigitales ?></h4>
                     </div>
+                    <h6 class="text-muted small fw-bold mb-0">Entregas Digitales</h6>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-4 col-xl-2">
+        <a href="<?= APP_URL ?>admin/productos" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-warning border-4">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="bg-warning bg-opacity-10 p-2 rounded-3 text-warning">
+                            <i class="bi bi-box-seam fs-5"></i>
+                        </div>
+                        <h4 class="mb-0 fw-bold"><?= $totalProductos ?></h4>
+                    </div>
+                    <h6 class="text-muted small fw-bold mb-0">Total Productos</h6>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-4 col-xl-2">
+        <a href="<?= APP_URL ?>admin/portfolio" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-info border-4">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="bg-info bg-opacity-10 p-2 rounded-3 text-info">
+                            <i class="bi bi-image fs-5"></i>
+                        </div>
+                        <h4 class="mb-0 fw-bold"><?= $totalPortfolio ?></h4>
+                    </div>
+                    <h6 class="text-muted small fw-bold mb-0">Casos de Éxito</h6>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-4 col-xl-2">
+        <a href="<?= APP_URL ?>admin/categorias" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-secondary border-4">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="bg-secondary bg-opacity-10 p-2 rounded-3 text-secondary">
+                            <i class="bi bi-tags fs-5"></i>
+                        </div>
+                        <h4 class="mb-0 fw-bold"><?= $totalCategorias ?></h4>
+                    </div>
+                    <h6 class="text-muted small fw-bold mb-0">Categorías</h6>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-4 col-xl-2">
+        <a href="<?= APP_URL ?>admin/perfil" class="text-decoration-none">
+            <div class="card border-0 shadow-sm rounded-4 h-100 border-start border-dark border-4">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="bg-dark bg-opacity-10 p-2 rounded-3 text-dark">
+                            <i class="bi bi-shop fs-5"></i>
+                        </div>
+                        <i class="bi bi-chevron-right text-muted small"></i>
+                    </div>
+                    <h6 class="text-muted small fw-bold mb-0">Perfil Empresa</h6>
                 </div>
             </div>
         </a>
@@ -86,15 +116,15 @@ $ultimosProductos = $db->fetchAll("SELECT name, price_unit, is_digital, status F
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm rounded-4 h-100">
             <div class="card-header bg-white border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-primary"></i> Últimas Proformas</h6>
-                <a href="<?= APP_URL ?>admin/ventas" class="btn btn-sm btn-outline-primary rounded-pill px-3">Ver
-                    todas</a>
+                <h6 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-primary"></i> Últimos Pedidos</h6>
+                <a href="<?= APP_URL ?>admin/pedidos" class="btn btn-sm btn-outline-primary rounded-pill px-3">Ver
+                    todos</a>
             </div>
             <div class="card-body p-4">
                 <?php if (empty($ultimasProformas)): ?>
                     <div class="text-center text-muted py-4">
                         <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                        <p class="small">No hay proformas aún.</p>
+                        <p class="small">No hay pedidos aún.</p>
                     </div>
                 <?php else: ?>
                     <div class="table-responsive">

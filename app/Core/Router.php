@@ -11,6 +11,21 @@ class Router
     {
         $url = $this->parseUrl($url);
 
+        // --- Alias de Rutas SEO ---
+        if (isset($url[0])) {
+            if ($url[0] === 'portafolio' && isset($url[1]) && $url[1] === 'page') {
+                // portafolio/page/2 -> PortafolioController/index/2
+                $url[0] = 'portafolio';
+                $url[1] = 'index';
+            } elseif ($url[0] === 'caso-de-exito' && isset($url[1])) {
+                // caso-de-exito/slug -> PortafolioController/ver/slug
+                $url[0] = 'portafolio';
+                $params = array_slice($url, 1);
+                $url[1] = 'ver';
+                // El resto (slug) se mantiene como parámetros
+            }
+        }
+
         // Si la URL está vacía, cargar controlador por defecto
         $controllerName = isset($url[0]) ? ucwords($url[0]) . 'Controller' : $this->controller;
 

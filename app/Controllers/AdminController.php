@@ -6,6 +6,7 @@ use App\Models\ProductoModel;
 use App\Models\CategoryModel;
 use App\Models\ImagenProductoModel;
 use App\Services\ImageService;
+use App\Services\SlugService;
 
 class AdminController extends Controller
 {
@@ -76,6 +77,15 @@ class AdminController extends Controller
             'terms_conditions' => trim($_POST['terms_conditions'] ?? ''),
             'thank_you_message' => trim($_POST['thank_you_message'] ?? ''),
             'maps_embed' => trim($_POST['maps_embed'] ?? ''),
+            'shipping_cost' => (float) ($_POST['shipping_cost'] ?? 0),
+            'tax_rate' => (float) ($_POST['tax_rate'] ?? 0),
+            'smtp_host' => trim($_POST['smtp_host'] ?? ''),
+            'smtp_port' => (int) ($_POST['smtp_port'] ?? 587),
+            'smtp_user' => trim($_POST['smtp_user'] ?? ''),
+            'smtp_pass' => trim($_POST['smtp_pass'] ?? ''),
+            'smtp_encryption' => trim($_POST['smtp_encryption'] ?? 'tls'),
+            'smtp_from_email' => trim($_POST['smtp_from_email'] ?? ''),
+            'smtp_from_name' => trim($_POST['smtp_from_name'] ?? ''),
         ];
 
         // ── Manejo del Logo ──
@@ -167,6 +177,30 @@ class AdminController extends Controller
             }
         }
 
+        // ── Manejo de la Imagen de Pie de Página (Publicidad PDF) ──
+        // ── Manejo de la Imagen de Pie de Página (Publicidad PDF) ──
+        if (isset($_FILES['footer_image']) && $_FILES['footer_image']['error'] === UPLOAD_ERR_OK) {
+            $ext = strtolower(pathinfo($_FILES['footer_image']['name'], PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+            if (in_array($ext, $allowed)) {
+                $uploadDir = BASE_PATH . 'public/assets/img/';
+                if (!is_dir($uploadDir))
+                    mkdir($uploadDir, 0755, true);
+
+                $oldFooter = $companyModel->getFooterImagePath();
+                if ($oldFooter && !str_starts_with($oldFooter, 'http')) {
+                    $oldPath = BASE_PATH . 'public/' . $oldFooter;
+                    if (file_exists($oldPath))
+                        @unlink($oldPath);
+                }
+
+                $fileName = 'footer_publicidad.' . $ext;
+                // Copiar imagen sin comprimir 
+                move_uploaded_file($_FILES['footer_image']['tmp_name'], $uploadDir . $fileName);
+                $companyModel->updateFooterImage('assets/img/' . $fileName);
+            }
+        }
+
         // ── Guardar datos de texto ──
         if ($companyModel->updateProfile($data)) {
             $_SESSION['success_msg'] = '✅ Perfil de empresa actualizado correctamente.';
@@ -181,9 +215,35 @@ class AdminController extends Controller
     public function productos()
     {
         $productoModel = $this->model('ProductoModel');
+
+        // Recepción de parámetros
+        $limit = 14;
+        $page = (int) ($_GET['p'] ?? 1);
+        if ($page < 1)
+            $page = 1;
+
+        $search = trim($_GET['s'] ?? '');
+        $sort = $_GET['sort'] ?? 'p.created_at';
+        $order = $_GET['dir'] ?? 'DESC';
+
+        $offset = ($page - 1) * $limit;
+
+        $totalItems = $productoModel->countTotal($search);
+        $totalPages = ceil($totalItems / $limit);
+        $productos = $productoModel->getPaginated($limit, $offset, $search, $sort, $order);
+
         $data = [
             'title' => 'Inventario de Productos',
-            'productos' => $productoModel->getAll(),
+            'productos' => $productos,
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $totalPages,
+                'total_items' => $totalItems,
+                'limit' => $limit,
+                'search' => $search,
+                'sort' => $sort,
+                'dir' => $order
+            ],
             'success' => $_SESSION['success_msg'] ?? null,
             'error' => $_SESSION['error_msg'] ?? null
         ];
@@ -326,8 +386,29 @@ class AdminController extends Controller
     {
         if ($id) {
             $productoModel = $this->model('ProductoModel');
-            $productoModel->delete($id);
-            $_SESSION['success_msg'] = 'Producto eliminado.';
+
+            // Verificar si tiene pedidos asociados
+            if ($productoModel->hasOrders($id)) {
+                // No se puede borrar físicamente, se inactiva
+                $productoModel->update($id, [
+                    'status' => 'inactive',
+                    // Mantener el resto de datos igual, solo cambiamos status
+                    'name' => ($p = $productoModel->getById($id))['name'],
+                    'category_id' => $p['category_id'],
+                    'price_unit' => $p['price_unit'],
+                    'price_dozen' => $p['price_dozen'],
+                    'is_digital' => $p['is_digital'],
+                    'description' => $p['description'],
+                    'image_url' => $p['image_url'],
+                    'allow_client_note' => $p['allow_client_note'],
+                    'allow_client_logo' => $p['allow_client_logo']
+                ]);
+                $_SESSION['success_msg'] = 'El producto tiene pedidos asociados. Se ha marcado como "Inactivo" para preservar el historial.';
+            } else {
+                // Se puede borrar físicamente
+                $productoModel->delete($id);
+                $_SESSION['success_msg'] = 'Producto eliminado permanentemente.';
+            }
         }
         $this->redirect('admin/productos');
     }
@@ -507,19 +588,206 @@ class AdminController extends Controller
         }
     }
 
-    // Stubs para rutas pendientes
-    public function ventas()
+    // Listado de pedidos (Cotizaciones administrativas)
+    public function pedidos()
     {
-        $this->view('admin/coming_soon', ['title' => 'Proformas']);
+        $this->redirect('cotizacion/admin_index');
     }
     public function digitales()
     {
-        $this->view('admin/coming_soon', ['title' => 'Entregas Digitales']);
+        require_once BASE_PATH . 'app/Models/DigitalAccessModel.php';
+        $model = new \App\Models\DigitalAccessModel();
+        $accesses = $model->getAllAdminAccesses();
+
+        $this->view('admin/digitales/index', [
+            'title' => 'Entregas Digitales',
+            'accesses' => $accesses
+        ]);
     }
+    // ==== CASOS DE ÉXITO (PORTAFOLIO) ====
     public function portfolio()
     {
-        $this->view('admin/coming_soon', ['title' => 'Casos de Éxito']);
+        require_once BASE_PATH . 'app/Models/PortfolioModel.php';
+        $model = new \App\Models\PortfolioModel();
+
+        $data = [
+            'title' => 'Gestión de Casos de Éxito',
+            'items' => $model->getAll(100, 0), // Listado amplio para admin
+            'success' => $_SESSION['success_msg'] ?? null,
+            'error' => $_SESSION['error_msg'] ?? null
+        ];
+        unset($_SESSION['success_msg'], $_SESSION['error_msg']);
+        $this->view('admin/portfolio/index', $data);
     }
+
+    public function portfolio_nuevo()
+    {
+        $data = [
+            'title' => 'Nuevo Caso de Éxito',
+            'item' => null,
+            'success' => null,
+            'error' => $_SESSION['error_msg'] ?? null
+        ];
+        unset($_SESSION['error_msg']);
+        $this->view('admin/portfolio/form', $data);
+    }
+
+    public function portfolio_editar($id = null)
+    {
+        if (!$id) {
+            $this->redirect('admin/portfolio');
+            return;
+        }
+
+        require_once BASE_PATH . 'app/Models/PortfolioModel.php';
+        $model = new \App\Models\PortfolioModel();
+        $item = $model->getById($id);
+
+        if (!$item) {
+            $this->redirect('admin/portfolio');
+            return;
+        }
+
+        $data = [
+            'title' => 'Editar Caso de Éxito',
+            'item' => $item,
+            'success' => $_SESSION['success_msg'] ?? null,
+            'error' => $_SESSION['error_msg'] ?? null
+        ];
+        unset($_SESSION['success_msg'], $_SESSION['error_msg']);
+        $this->view('admin/portfolio/form', $data);
+    }
+
+    public function portfolio_guardar()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('admin/portfolio');
+            return;
+        }
+
+        $id = $_POST['id'] ?? null;
+        $title = trim($_POST['titulo'] ?? '');
+
+        if (!$title) {
+            $_SESSION['error_msg'] = 'El título es obligatorio.';
+            $id ? $this->redirect("admin/portfolio_editar/$id") : $this->redirect('admin/portfolio_nuevo');
+            return;
+        }
+
+        require_once BASE_PATH . 'app/Models/PortfolioModel.php';
+        $model = new \App\Models\PortfolioModel();
+
+        $data = [
+            'titulo' => $title,
+            'intro_corta' => trim($_POST['intro_corta'] ?? ''),
+            'contenido_enriquecido' => $_POST['contenido_enriquecido'] ?? '',
+            'categoria_tecnica' => trim($_POST['categoria_tecnica'] ?? ''),
+            'meta_description' => trim($_POST['meta_description'] ?? ''),
+            'tags' => trim($_POST['tags'] ?? ''),
+            'fecha_publicacion' => $_POST['fecha_publicacion'] ?? date('Y-m-d'),
+            'imagen_principal' => $_POST['imagen_principal'] ?? null
+        ];
+
+        // 1. Imagen Local
+        if (isset($_FILES['portfolio_local']) && $_FILES['portfolio_local']['error'] === UPLOAD_ERR_OK) {
+            $uploaded = $this->uploadPortfolioImage($_FILES['portfolio_local']);
+            if ($uploaded)
+                $data['imagen_principal'] = $uploaded;
+        }
+
+        // 2. Imagen ImgBB
+        $imgbbKey = defined('IMGBB_API_KEY') ? IMGBB_API_KEY : '';
+        if (isset($_FILES['portfolio_imgbb']) && $_FILES['portfolio_imgbb']['error'] === UPLOAD_ERR_OK && $imgbbKey) {
+            $res = ImageService::uploadToImgBB($_FILES['portfolio_imgbb']['tmp_name'], $imgbbKey);
+            if ($res)
+                $data['imagen_principal'] = $res['path'];
+        }
+
+        if ($id) {
+            $model->update($id, $data);
+            $portfolioId = $id;
+            $_SESSION['success_msg'] = 'Caso de éxito actualizado.';
+        } else {
+            $portfolioId = $model->create($data);
+            $_SESSION['success_msg'] = 'Caso de éxito creado.';
+        }
+
+        // 3. Procesar Galería de Imágenes Adicionales
+        if ($portfolioId) {
+            $galleryImages = [];
+
+            // 3.1 URLs Externas de la Galería
+            if (isset($_POST['gallery_urls']) && is_array($_POST['gallery_urls'])) {
+                foreach ($_POST['gallery_urls'] as $url) {
+                    if (!empty(trim($url))) {
+                        $galleryImages[] = [
+                            'path' => trim($url),
+                            'source' => (strpos($url, 'ibb.co') !== false) ? 'api' : 'url'
+                        ];
+                    }
+                }
+            }
+
+            // 3.2 Imágenes Locales de la Galería
+            if (isset($_FILES['gallery_local']) && !empty($_FILES['gallery_local']['name'][0])) {
+                $files = $_FILES['gallery_local'];
+                for ($i = 0; $i < count($files['name']); $i++) {
+                    if ($files['error'][$i] === UPLOAD_ERR_OK) {
+                        $singleFile = [
+                            'name' => $files['name'][$i],
+                            'type' => $files['type'][$i],
+                            'tmp_name' => $files['tmp_name'][$i],
+                            'error' => $files['error'][$i],
+                            'size' => $files['size'][$i]
+                        ];
+                        $uploaded = $this->uploadPortfolioImage($singleFile);
+                        if ($uploaded) {
+                            $galleryImages[] = ['path' => $uploaded, 'source' => 'local'];
+                        }
+                    }
+                }
+            }
+
+            // 3.3 Imágenes ImgBB de la Galería
+            if (isset($_FILES['gallery_imgbb']) && !empty($_FILES['gallery_imgbb']['name'][0]) && $imgbbKey) {
+                $files = $_FILES['gallery_imgbb'];
+                for ($i = 0; $i < count($files['name']); $i++) {
+                    if ($files['error'][$i] === UPLOAD_ERR_OK) {
+                        $resImg = \App\Services\ImageService::uploadToImgBB($files['tmp_name'][$i], $imgbbKey);
+                        if ($resImg) {
+                            $galleryImages[] = $resImg;
+                        }
+                    }
+                }
+            }
+
+            // Guardar en la base de datos
+            if (!empty($galleryImages)) {
+                $model->setGallery($portfolioId, $galleryImages);
+            }
+        }
+
+        $this->redirect('admin/portfolio');
+    }
+
+    public function portfolio_eliminar($id = null)
+    {
+        if ($id) {
+            require_once BASE_PATH . 'app/Models/PortfolioModel.php';
+            $model = new \App\Models\PortfolioModel();
+            $model->delete($id);
+            $_SESSION['success_msg'] = 'Caso de éxito eliminado.';
+        }
+        $this->redirect('admin/portfolio');
+    }
+
+    private function uploadPortfolioImage($file)
+    {
+        // Calidad 80 para la imagen principal del portafolio (buen balance SEO/Visual)
+        $result = ImageService::processUpload($file, 80);
+        return $result ? $result['path'] : null;
+    }
+
 
     /** AJAX: lista imágenes disponibles para el selector de logo */
     public function images_json()
@@ -582,5 +850,77 @@ class AdminController extends Controller
 
         echo json_encode($images, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
+    }
+
+    // ==== CATEGORÍAS ====
+    public function categorias()
+    {
+        $categoryModel = $this->model('CategoryModel');
+        $data = [
+            'title' => 'Gestión de Categorías',
+            'items' => $categoryModel->getAll(),
+            'success' => $_SESSION['success_msg'] ?? null,
+            'error' => $_SESSION['error_msg'] ?? null
+        ];
+        unset($_SESSION['success_msg'], $_SESSION['error_msg']);
+        $this->view('admin/productos/categorias', $data);
+    }
+
+    public function categoria_guardar()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('admin/categorias');
+            return;
+        }
+
+        $id = $_POST['id'] ?? null;
+        $name = trim($_POST['name'] ?? '');
+        $type = $_POST['type'] ?? 'físico';
+
+        if (!$name) {
+            $_SESSION['error_msg'] = 'El nombre es obligatorio.';
+            $this->redirect('admin/categorias');
+            return;
+        }
+
+        $slug = SlugService::generate($name);
+        $categoryModel = $this->model('CategoryModel');
+
+        $data = [
+            'name' => $name,
+            'slug' => $slug,
+            'type' => $type
+        ];
+
+        if ($id) {
+            $res = $categoryModel->update($id, $data);
+            $msg = "Categoría '$name' actualizada.";
+        } else {
+            $res = $categoryModel->create($data);
+            $msg = "Categoría '$name' creada.";
+        }
+
+        if ($res) {
+            $_SESSION['success_msg'] = $msg;
+        } else {
+            $_SESSION['error_msg'] = "Error al procesar la categoría.";
+        }
+
+        $this->redirect('admin/categorias');
+    }
+
+    public function categoria_eliminar($id = null)
+    {
+        if ($id) {
+            $categoryModel = $this->model('CategoryModel');
+
+            if ($categoryModel->isInUse($id)) {
+                $_SESSION['error_msg'] = "No se puede eliminar la categoría porque tiene productos asociados. Primero cambia los productos de categoría.";
+            } else {
+                $categoryModel->delete($id);
+                $_SESSION['success_msg'] = "Categoría eliminada correctamente.";
+            }
+        }
+        $this->redirect('admin/categorias');
     }
 }
