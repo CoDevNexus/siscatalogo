@@ -6,6 +6,8 @@
 
 SisCatalogo es un robusto sistema web construido en PHP moderno, optimizado para gestionar catálogos de productos, controlar existencias e inventarios, y generar o recibir cotizaciones estructuradas y pedidos en línea desde dispositivos móviles y de escritorio. El sistema incluye un Catálogo Público Inteligente y un Panel de Administración avanzado (BackOffice).
 
+
+
 ---
 
 ## ✨ Características Principales
@@ -77,3 +79,10 @@ siscatalogo/
 
 ---
 *Diseñado para potenciar la productividad y la identidad visual de tu marca.*
+
+
+![Demo1](\demo\demo5.png)
+![Demo2](\demo\demo8.png)
+![Demo3](\demo\demo1.png)
+![Demo4](\demo\demo3.png)
+![Demo4](\demo\demo4.png)
