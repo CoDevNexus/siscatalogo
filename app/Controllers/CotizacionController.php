@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Security;
 use App\Models\CotizacionModel;
 use App\Models\CompanyModel;
 
@@ -36,11 +37,44 @@ class CotizacionController extends Controller
             $data['needs_invoice'] = isset($data['tax_amount']) && $data['tax_amount'] > 0 ? 1 : 0;
 
             $orderId = $this->model->create($data, $data['items']);
+
+            // ─── Enviar correos automáticos ───
+            require_once BASE_PATH . 'app/Services/MailService.php';
+            $companyModel = new CompanyModel();
+            $company = $companyModel->getProfile();
+
+            $order = $this->model->getById($orderId);
+            $order['items'] = $this->model->getItems($orderId);
+
+            ob_start(); // Para capturar warnings de PHPMailer y no romper el JSON
+
+            // 1. Correo al Cliente
+            if (!empty($order['customer_email']) && filter_var($order['customer_email'], FILTER_VALIDATE_EMAIL)) {
+                $htmlClient = \App\Services\MailService::getOrderHtml($order, $company);
+                \App\Services\MailService::send($order['customer_email'], "Confirmación de Pedido #{$orderId} - {$company['name']}", $htmlClient);
+            }
+
+            // 2. Correo al Administrador
+            $adminEmail = $company['email'] ?? null;
+            if (!empty($adminEmail) && filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                $customAdminHeader = "<p><strong>¡Nuevo Pedido Recibido!</strong></p><p>El cliente <strong>{$order['customer_name']}</strong> acaba de realizar el pedido #{$orderId} el " . date('d/m/Y H:i', strtotime($order['created_at'])) . ".</p>";
+                $htmlAdmin = \App\Services\MailService::getOrderHtml($order, $company, $customAdminHeader);
+                \App\Services\MailService::send($adminEmail, "Nuevo Pedido #{$orderId} - {$order['customer_name']}", $htmlAdmin);
+            }
+
+            // 3. Notificación a Telegram
+            require_once BASE_PATH . 'app/Helpers/TelegramHelper.php';
+            \App\Helpers\TelegramHelper::sendOrderNotification($order);
+
+            ob_end_clean();
+            // ─────────────────────────────────
+
             echo json_encode(['status' => 'success', 'order_id' => $orderId]);
         } catch (\Exception $e) {
             echo json_encode(['status' => 'error', 'message' => 'Error al guardar: ' . $e->getMessage()]);
         }
     }
+
 
     // --- ACCIONES ADMINISTRATIVAS ---
 
@@ -105,7 +139,7 @@ class CotizacionController extends Controller
 
     public function actualizar_estado()
     {
-        $this->checkAdmin();
+        Security::canOrFail('pedidos.gestionar');
         header('Content-Type: application/json');
 
         $id = $_POST['id'] ?? null;
@@ -117,6 +151,7 @@ class CotizacionController extends Controller
         }
 
         if ($this->model->updateStatus($id, $status)) {
+            Security::logActivity("Cotización #$id estado cambiado a: $status", 'pedidos', "ID=$id");
             echo json_encode(['status' => 'success']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'No se pudo actualizar']);
@@ -125,7 +160,7 @@ class CotizacionController extends Controller
 
     public function aprobar_pago_digital()
     {
-        $this->checkAdmin();
+        Security::canOrFail('pedidos.gestionar');
         header('Content-Type: application/json');
 
         $id = $_POST['id'] ?? null;
@@ -167,6 +202,8 @@ class CotizacionController extends Controller
             $html = \App\Services\MailService::getDigitalDeliveryHtml($order, $company, $user, $pass);
             \App\Services\MailService::send($order['customer_email'], 'Tus Accesos Digitales - ' . $company['name'], $html);
 
+            Security::logActivity("Pago digital aprobado: cotización #$id", 'pedidos', "Cliente: {$order['customer_email']}, usuario: $user");
+
             // Limpiar cualquier salida previa (warnings de mail(), etc) para no romper el JSON
             if (ob_get_level()) {
                 ob_end_clean();
@@ -188,7 +225,7 @@ class CotizacionController extends Controller
 
     public function actualizar_orden()
     {
-        $this->checkAdmin();
+        Security::canOrFail('pedidos.gestionar');
         header('Content-Type: application/json');
 
         $data = json_decode(file_get_contents('php://input'), true);
@@ -200,6 +237,7 @@ class CotizacionController extends Controller
         }
 
         if ($this->model->updateOrder($id, $data, $data['items'])) {
+            Security::logActivity("Cotización #$id editada", 'pedidos', count($data['items']) . " ítems actualizados");
             echo json_encode(['status' => 'success']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Error al actualizar']);
@@ -214,14 +252,9 @@ class CotizacionController extends Controller
         die("Funcionalidad PDF en proceso de integración. Requiere DomPDF.");
     }
 
-    private function checkAdmin()
+    private function checkAdmin(): void
     {
-        if (session_status() === PHP_SESSION_NONE)
-            session_start();
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-            header('Location: ' . APP_URL . 'admin/login');
-            exit();
-        }
+        Security::requireAdmin();
     }
 
     public function enviar_email()
@@ -244,7 +277,7 @@ class CotizacionController extends Controller
         }
         $order['items'] = $this->model->getItems($id);
 
-        $companyModel = new \App\Models\CompanyModel();
+        $companyModel = new CompanyModel();
         $company = $companyModel->getProfile();
 
         $html = \App\Services\MailService::getOrderHtml($order, $company);

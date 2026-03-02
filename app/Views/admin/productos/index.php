@@ -46,9 +46,11 @@ $sortIcon = function ($col) use ($sort, $dir) {
         </form>
     </div>
     <div class="col-md-3 text-end">
-        <a href="<?= APP_URL ?>admin/producto_crear" class="btn btn-primary rounded-pill px-4 shadow-sm">
-            <i class="bi bi-plus-lg me-1"></i> Nuevo
-        </a>
+        <?php if (\App\Core\Security::can('productos.crear')): ?>
+            <a href="<?= APP_URL ?>admin/producto_crear" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                <i class="bi bi-plus-lg me-1"></i> Nuevo
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -71,13 +73,15 @@ $sortIcon = function ($col) use ($sort, $dir) {
                                 <?= $sortIcon('p.is_digital') ?></a></th>
                         <th><a href="<?= $buildSortUrl('p.status') ?>" class="text-white text-decoration-none">Estado
                                 <?= $sortIcon('p.status') ?></a></th>
-                        <th class="text-end pe-4">Acciones</th>
+                        <?php if (\App\Core\Security::can('productos.editar') || \App\Core\Security::can('productos.eliminar')): ?>
+                            <th class="text-end pe-4">Acciones</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($productos)): ?>
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-5">
+                            <td colspan="8" class="text-center text-muted py-5">
                                 <i class="bi bi-search fs-1 d-block mb-2"></i>
                                 No se encontraron productos coincidentes.
                                 <?php if (!empty($search)): ?>
@@ -139,24 +143,34 @@ $sortIcon = function ($col) use ($sort, $dir) {
                                         <?= ucfirst($p['status']) ?>
                                     </small>
                                 </td>
-                                <td class="text-end pe-4">
-                                    <div class="dropdown">
-                                        <button class="btn btn-light btn-sm rounded-circle shadow-sm" data-bs-toggle="dropdown">
-                                            <i class="bi bi-three-dots-vertical"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
-                                            <li><a class="dropdown-item py-2"
-                                                    href="<?= APP_URL ?>admin/producto_editar/<?= $p['id'] ?>">
-                                                    <i class="bi bi-pencil me-2 text-primary"></i> Editar Detalle</a></li>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li><button class="dropdown-item py-2 text-danger"
-                                                    onclick="confirmarEliminar(<?= $p['id'] ?>, '<?= addslashes($p['name']) ?>')">
-                                                    <i class="bi bi-trash3 me-2"></i> Eliminar</button></li>
-                                        </ul>
-                                    </div>
-                                </td>
+                                <?php if (\App\Core\Security::can('productos.editar') || \App\Core\Security::can('productos.eliminar')): ?>
+                                    <td class="text-end pe-4">
+                                        <div class="dropdown">
+                                            <button class="btn btn-light btn-sm rounded-circle shadow-sm" data-bs-toggle="dropdown">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
+                                                <?php if (\App\Core\Security::can('productos.editar')): ?>
+                                                    <li><a class="dropdown-item py-2"
+                                                            href="<?= APP_URL ?>admin/producto_editar/<?= $p['id'] ?>">
+                                                            <i class="bi bi-pencil me-2 text-primary"></i> Editar Detalle</a></li>
+                                                <?php endif; ?>
+
+                                                <?php if (\App\Core\Security::can('productos.editar') && \App\Core\Security::can('productos.eliminar')): ?>
+                                                    <li>
+                                                        <hr class="dropdown-divider">
+                                                    </li>
+                                                <?php endif; ?>
+
+                                                <?php if (\App\Core\Security::can('productos.eliminar')): ?>
+                                                    <li><button class="dropdown-item py-2 text-danger"
+                                                            onclick="confirmarEliminar(<?= $p['id'] ?>, '<?= addslashes($p['name']) ?>')">
+                                                            <i class="bi bi-trash3 me-2"></i> Eliminar</button></li>
+                                                <?php endif; ?>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                <?php endif; ?>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

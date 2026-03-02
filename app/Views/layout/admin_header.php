@@ -198,37 +198,87 @@
                 <i class="bi bi-speedometer2 me-2"></i>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a href="<?= APP_URL ?>admin/productos"
-                class="nav-link <?= strpos($currentUri, '/admin/productos') !== false ? 'active' : '' ?>">
-                <i class="bi bi-box-seam me-2"></i>
-                <span class="nav-text">Inventario</span>
-            </a>
-            <a href="<?= APP_URL ?>admin/categorias"
-                class="nav-link <?= strpos($currentUri, '/admin/categorias') !== false ? 'active' : '' ?>">
-                <i class="bi bi-tags me-2"></i>
-                <span class="nav-text">Categorías</span>
-            </a>
-            <a href="<?= APP_URL ?>cotizacion/admin_index"
-                class="nav-link <?= strpos($currentUri, 'cotizacion/admin_index') !== false ? 'active' : '' ?>">
-                <i class="bi bi-cart-check me-2"></i>
-                <span class="nav-text">Gestión de Pedidos</span>
-            </a>
-            <a href="<?= APP_URL ?>admin/digitales"
-                class="nav-link <?= strpos($currentUri, '/admin/digitales') !== false ? 'active' : '' ?>">
-                <i class="bi bi-cloud-arrow-down me-2"></i>
-                <span class="nav-text">Entregas Digitales</span>
-            </a>
-            <a href="<?= APP_URL ?>admin/portfolio"
-                class="nav-link <?= strpos($currentUri, '/admin/portfolio') !== false ? 'active' : '' ?>">
-                <i class="bi bi-image me-2"></i>
-                <span class="nav-text">Casos de Éxito</span>
-            </a>
-            <a href="<?= APP_URL ?>admin/perfil"
-                class="nav-link <?= strpos($currentUri, '/admin/perfil') !== false ? 'active' : '' ?>">
-                <i class="bi bi-shop me-2"></i>
-                <span class="nav-text">Perfil Empresa</span>
-            </a>
+            <?php if (\App\Core\Security::can('configuracion.ver') || \App\Core\Security::can('slider.gestionar')): ?>
+                <a href="<?= APP_URL ?>admin/home_slider"
+                    class="nav-link <?= strpos($currentUri, '/admin/home_slider') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-images me-2"></i>
+                    <span class="nav-text">Gestión de Slider</span>
+                </a>
+                <a href="<?= APP_URL ?>admin/home_settings"
+                    class="nav-link <?= strpos($currentUri, '/admin/home_settings') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-fonts me-2"></i>
+                    <span class="nav-text">Textos del Home</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (\App\Core\Security::can('productos.ver') || \App\Core\Security::can('categorias.ver')): ?>
+                <a href="<?= APP_URL ?>admin/productos"
+                    class="nav-link <?= strpos($currentUri, '/admin/productos') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-box-seam me-2"></i>
+                    <span class="nav-text">Inventario</span>
+                </a>
+                <a href="<?= APP_URL ?>admin/categorias"
+                    class="nav-link <?= strpos($currentUri, '/admin/categorias') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-tags me-2"></i>
+                    <span class="nav-text">Categorías</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (\App\Core\Security::can('pedidos.ver') || \App\Core\Security::can('digitales.ver')): ?>
+                <a href="<?= APP_URL ?>cotizacion/admin_index"
+                    class="nav-link <?= strpos($currentUri, 'cotizacion/admin_index') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-cart-check me-2"></i>
+                    <span class="nav-text">Gestión de Pedidos</span>
+                </a>
+                <a href="<?= APP_URL ?>admin/digitales"
+                    class="nav-link <?= strpos($currentUri, '/admin/digitales') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-cloud-arrow-down me-2"></i>
+                    <span class="nav-text">Entregas Digitales</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (\App\Core\Security::can('portfolio.ver')): ?>
+                <a href="<?= APP_URL ?>admin/portfolio"
+                    class="nav-link <?= strpos($currentUri, '/admin/portfolio') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-image me-2"></i>
+                    <span class="nav-text">Casos de Éxito</span>
+                </a>
+            <?php endif; ?>
+            <?php if (\App\Core\Security::can('configuracion.ver')): ?>
+                <a href="<?= APP_URL ?>admin/perfil"
+                    class="nav-link <?= strpos($currentUri, '/admin/perfil') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-shop me-2"></i>
+                    <span class="nav-text">Perfil Empresa</span>
+                </a>
+            <?php endif; ?>
+
+            <hr class="text-secondary mx-3 my-2">
+
+            <?php if (\App\Core\Security::can('usuarios.ver')): ?>
+                <a href="<?= APP_URL ?>admin/usuarios"
+                    class="nav-link <?= strpos($currentUri, '/admin/usuarios') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-people-fill me-2"></i>
+                    <span class="nav-text">Usuarios</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (\App\Core\Security::can('roles.ver')): ?>
+                <a href="<?= APP_URL ?>admin/roles"
+                    class="nav-link <?= strpos($currentUri, '/admin/roles') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-shield-lock-fill me-2"></i>
+                    <span class="nav-text">Roles y Permisos</span>
+                </a>
+            <?php endif; ?>
+
+            <?php if (\App\Core\Security::can('bitacora.ver')): ?>
+                <a href="<?= APP_URL ?>admin/bitacora"
+                    class="nav-link <?= strpos($currentUri, '/admin/bitacora') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-journal-text me-2"></i>
+                    <span class="nav-text">Bitácora</span>
+                </a>
+            <?php endif; ?>
         </nav>
+
 
         <div class="mt-auto pb-4">
             <hr class="text-secondary mx-3">
@@ -241,6 +291,13 @@
 
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
+        <script>
+            // Aplicar estado colapsado inmediatamente en desktop para evitar el destello (FOUC)
+            if (window.innerWidth > 768) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('mainContent').classList.add('expanded');
+            }
+        </script>
         <!-- Header superior -->
         <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 border-bottom sticky-top">
             <div class="d-flex align-items-center">

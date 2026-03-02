@@ -14,12 +14,6 @@
     const content = document.getElementById('mainContent');
     const overlay = document.getElementById('sidebarOverlay');
 
-    // Estado inicial en desktop: Colapsado por defecto
-    if (window.innerWidth > 768) {
-        sidebar.classList.add('collapsed');
-        content.classList.add('expanded');
-    }
-
     // Expandir on hover
     sidebar.addEventListener('mouseenter', function () {
         if (window.innerWidth > 768) {

@@ -1,20 +1,24 @@
 <!-- ========= CATÁLOGO PRINCIPAL ========= -->
 
 <!-- Hero -->
-<div class="hero-section text-center">
+<?php $bgImage = !empty($settings['hero_image']) ? APP_URL . htmlspecialchars($settings['hero_image']) : ''; ?>
+<div class="hero-section text-center" <?= $bgImage ? 'style="background-image: linear-gradient(rgba(252,246,249,0.92), rgba(255,255,255,1)), url(' . $bgImage . '); background-size: cover; background-position: center;"' : '' ?>>
     <div class="container position-relative">
-        <span class="badge bg-danger mb-3 px-3 py-2 rounded-pill fw-normal fs-6">⚡ Nuevos Diseños 2026</span>
-        <h1 class="display-4 fw-bold text-dark mb-3">Eleva tu Marca con Corte Láser</h1>
+        <?php if (!empty($settings['hero_badge'])): ?>
+            <span
+                class="badge bg-danger mb-3 px-3 py-2 rounded-pill fw-normal fs-6"><?= htmlspecialchars($settings['hero_badge']) ?></span>
+        <?php endif; ?>
+        <h1 class="display-4 fw-bold text-dark mb-3"><?= htmlspecialchars($settings['hero_title'] ?? 'Catálogo') ?></h1>
         <p class="lead text-secondary mx-auto mb-4" style="max-width:580px;">
-            Personalizamos MDF, acrílico y ofrecemos los mejores vectores digitales listos para tus propias máquinas de
-            corte.
+            <?= nl2br(htmlspecialchars($settings['hero_desc'] ?? '')) ?>
         </p>
         <!-- Búsqueda -->
         <form method="GET" action="" class="mx-auto" style="max-width:440px">
             <div class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden">
                 <span class="input-group-text bg-white border-0 ps-4"><i class="bi bi-search text-muted"></i></span>
                 <input type="text" name="q" class="form-control border-0 bg-white"
-                    placeholder="Buscar llavero, caja, vector..." value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
+                    placeholder="<?= htmlspecialchars($settings['hero_placeholder'] ?? 'Buscar...') ?>"
+                    value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
             </div>
         </form>
     </div>
@@ -22,20 +26,20 @@
 
 <!-- Filtros -->
 <div class="d-flex justify-content-center mb-5 gap-2 flex-wrap px-2">
-    <a href="<?= APP_URL ?>"
+    <a href="<?= APP_URL ?>productos"
         class="filter-btn text-decoration-none <?= (!$filterCat && !$filterType) ? 'active' : '' ?>">
         Ver Todos
     </a>
-    <a href="<?= APP_URL ?>?tipo=fisico"
+    <a href="<?= APP_URL ?>productos?tipo=fisico"
         class="filter-btn text-decoration-none <?= $filterType === 'fisico' ? 'active' : '' ?>">
         <i class="bi bi-box-seam me-1"></i>Físicos
     </a>
-    <a href="<?= APP_URL ?>?tipo=digital"
+    <a href="<?= APP_URL ?>productos?tipo=digital"
         class="filter-btn text-decoration-none <?= $filterType === 'digital' ? 'active' : '' ?>">
         <i class="bi bi-cloud-arrow-down me-1"></i>Digitales
     </a>
     <?php foreach ($categorias as $cat): ?>
-        <a href="<?= APP_URL ?>?cat=<?= $cat['id'] ?>"
+        <a href="<?= APP_URL ?>productos?cat=<?= $cat['id'] ?>"
             class="filter-btn text-decoration-none <?= $filterCat == $cat['id'] ? 'active' : '' ?>">
             <?= htmlspecialchars($cat['name']) ?>
         </a>

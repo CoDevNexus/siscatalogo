@@ -8,12 +8,13 @@ class MailService
     /**
      * Envía un email utilizando la configuración SMTP guardada en la base de datos.
      * 
-     * @param string $to Destinatario
+     * @param string|array $to Destinatario o array de destinatarios
      * @param string $subject Asunto
      * @param string $message Cuerpo del mensaje (puedes enviar HTML)
+     * @param array $bcc Direcciones en copia oculta
      * @return array ['status' => 'success'|'error', 'message' => '...']
      */
-    public static function send(string $to, string $subject, string $message): array
+    public static function send($to, string $subject, string $message, array $bcc = []): array
     {
         require_once BASE_PATH . 'app/Models/CompanyModel.php';
         $companyModel = new CompanyModel();
@@ -66,7 +67,18 @@ class MailService
 
             // Remitente y Destinatario
             $mail->setFrom($fromEmail, $fromName);
-            $mail->addAddress($to);
+            if (is_array($to)) {
+                foreach ($to as $address) {
+                    $mail->addAddress($address);
+                }
+            } else {
+                $mail->addAddress($to);
+            }
+            if (!empty($bcc)) {
+                foreach ($bcc as $b) {
+                    $mail->addBCC($b);
+                }
+            }
             $mail->addReplyTo($fromEmail, $fromName);
 
             // Contenido
@@ -85,7 +97,7 @@ class MailService
     /**
      * Genera el cuerpo HTML para una proforma de pedido.
      */
-    public static function getOrderHtml(array $order, array $company): string
+    public static function getOrderHtml(array $order, array $company, string $customHeader = ''): string
     {
         $itemsHtml = '';
         foreach ($order['items'] as $item) {
@@ -109,8 +121,7 @@ class MailService
             </div>
             <div style='padding: 20px;'>
                 <h3 style='border-bottom: 1px solid #eee; padding-bottom: 10px;'>Detalle de Proforma #{$order['id']}</h3>
-                <p>Hola <strong>{$order['customer_name']}</strong>,</p>
-                <p>Adjuntamos el detalle de su pedido solicitado el " . date('d/m/Y H:i', strtotime($order['created_at'])) . ".</p>
+                " . ($customHeader ?: "<p>Hola <strong>{$order['customer_name']}</strong>,</p><p>Adjuntamos el detalle de su pedido solicitado el " . date('d/m/Y H:i', strtotime($order['created_at'])) . ".</p>") . "
                 
                 <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>
                     <thead style='background: #f1f1f1;'>
@@ -218,5 +229,57 @@ class MailService
         </div>";
 
         return $html;
+    }
+
+    /**
+     * Envía el email de recuperación de contraseña al administrador.
+     *
+     * @param string $to       Email del administrador
+     * @param string $username Nombre de usuario
+     * @param string $resetUrl URL completa del enlace de reseteo (con token)
+     * @return array ['status' => 'success'|'error', 'message' => '...']
+     */
+    public static function sendPasswordReset(string $to, string $username, string $resetUrl): array
+    {
+        $subject = 'Recuperación de contraseña — ' . (defined('APP_NAME') ? APP_NAME : 'Panel Admin');
+        $appName = defined('APP_NAME') ? APP_NAME : 'Panel Admin';
+
+        $html = "
+        <div style='font-family: Arial, sans-serif; color: #333; max-width: 580px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;'>
+            <!-- Cabecera -->
+            <div style='background: #111827; padding: 24px; text-align: center;'>
+                <h2 style='margin: 0; color: #ffffff; font-size: 1.3rem; letter-spacing: 0.5px;'>🔐 {$appName}</h2>
+            </div>
+            <!-- Cuerpo -->
+            <div style='padding: 32px 28px;'>
+                <h3 style='margin: 0 0 12px; color: #111827; font-size: 1.1rem;'>Recuperación de contraseña</h3>
+                <p style='margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #444;'>
+                    Hola <strong>{$username}</strong>,<br>
+                    Recibimos una solicitud para restablecer la contraseña de tu cuenta de administrador.
+                    Si no realizaste esta solicitud, puedes ignorar este correo de forma segura.
+                </p>
+                <!-- Botón CTA -->
+                <div style='text-align: center; margin: 28px 0;'>
+                    <a href='{$resetUrl}'
+                       style='display: inline-block; background: #111827; color: #ffffff; padding: 14px 32px;
+                              text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 15px;
+                              letter-spacing: 0.3px;'>
+                        Restablecer contraseña
+                    </a>
+                </div>
+                <!-- Advertencia expiry -->
+                <div style='background: #fff8e1; border-left: 4px solid #f59e0b; padding: 14px 16px; border-radius: 4px; font-size: 13.5px; color: #92400e;'>
+                    <strong>⏱ Este enlace expira en 1 hora.</strong><br>
+                    Si el botón no funciona, copia y pega esta URL en tu navegador:<br>
+                    <span style='word-break: break-all; color: #555;'>{$resetUrl}</span>
+                </div>
+            </div>
+            <!-- Pie -->
+            <div style='background: #f9fafb; padding: 16px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb;'>
+                Este correo fue enviado automáticamente. Por favor no respondas a este mensaje.
+            </div>
+        </div>";
+
+        return self::send($to, $subject, $html);
     }
 }

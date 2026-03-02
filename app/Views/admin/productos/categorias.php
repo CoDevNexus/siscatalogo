@@ -5,9 +5,11 @@
             <p class="text-muted small">Organiza tus productos por categorías y tipos.</p>
         </div>
         <div class="col-md-6 text-md-end">
-            <button class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="openCategoryModal()">
-                <i class="bi bi-plus-lg me-1"></i>Nueva Categoría
-            </button>
+            <?php if (\App\Core\Security::can('categorias.crear')): ?>
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="openCategoryModal()">
+                    <i class="bi bi-plus-lg me-1"></i>Nueva Categoría
+                </button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -36,7 +38,9 @@
                             <th class="ps-4 py-3">Nombre</th>
                             <th>Slug</th>
                             <th>Tipo</th>
-                            <th class="text-end pe-4">Acciones</th>
+                            <?php if (\App\Core\Security::can('categorias.gestionar') || \App\Core\Security::can('categorias.eliminar')): ?>
+                                <th class="text-end pe-4">Acciones</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
@@ -52,16 +56,22 @@
                                         <?= ucfirst(htmlspecialchars($category['type'])) ?>
                                     </span>
                                 </td>
-                                <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-light border rounded-circle me-1" title="Editar"
-                                        onclick="openCategoryModal(<?= $category['id'] ?>, '<?= addslashes($category['name']) ?>', '<?= $category['type'] ?>')">
-                                        <i class="bi bi-pencil text-primary"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-light border rounded-circle text-danger" title="Eliminar"
-                                        onclick="confirmDelete(<?= $category['id'] ?>, '<?= addslashes($category['name']) ?>')">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
-                                </td>
+                                <?php if (\App\Core\Security::can('categorias.gestionar') || \App\Core\Security::can('categorias.eliminar')): ?>
+                                    <td class="text-end pe-4">
+                                        <?php if (\App\Core\Security::can('categorias.gestionar')): ?>
+                                            <button class="btn btn-sm btn-light border rounded-circle me-1" title="Editar"
+                                                onclick="openCategoryModal(<?= $category['id'] ?>, '<?= addslashes($category['name']) ?>', '<?= $category['type'] ?>')">
+                                                <i class="bi bi-pencil text-primary"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if (\App\Core\Security::can('categorias.eliminar')): ?>
+                                            <button class="btn btn-sm btn-light border rounded-circle text-danger" title="Eliminar"
+                                                onclick="confirmDelete(<?= $category['id'] ?>, '<?= addslashes($category['name']) ?>')">
+                                                <i class="bi bi-trash3"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </td>
+                                <?php endif; ?>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -120,10 +130,10 @@
         document.getElementById('cat_id').value = id || '';
         document.getElementById('cat_name').value = name;
         document.getElementById('cat_type').value = type;
-        
+
         document.getElementById('modalTitle').innerText = id ? 'Editar Categoría' : 'Nueva Categoría';
         document.getElementById('btnSubmit').innerText = id ? 'Guardar Cambios' : 'Crear Categoría';
-        
+
         categoryModalInstance.show();
     }
 

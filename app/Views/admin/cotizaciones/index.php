@@ -206,6 +206,7 @@ function pageLink($page, $filters, $orderBy, $orderDir)
                                                 title="Ver">
                                                 <i class="bi bi-eye text-primary"></i>
                                             </button>
+                                            <?php if (\App\Core\Security::can('pedidos.gestionar')): ?>
                                             <button class="btn btn-sm btn-white border"
                                                 onclick="verDetalle(<?= $c['id'] ?>, true)" title="Editar">
                                                 <i class="bi bi-pencil text-success"></i>
@@ -215,6 +216,7 @@ function pageLink($page, $filters, $orderBy, $orderDir)
                                                     onclick="aprobarDigital(<?= $c['id'] ?>)" title="Aprobar Entrega Digital">
                                                     <i class="bi bi-cloud-arrow-up-fill text-success"></i>
                                                 </button>
+                                            <?php endif; ?>
                                             <?php endif; ?>
                                             <button class="btn btn-sm btn-white border"
                                                 onclick="quickAction(event, <?= $c['id'] ?>, 'pdf')" title="Descargar PDF">
@@ -325,10 +327,12 @@ function pageLink($page, $filters, $orderBy, $orderDir)
                     <!-- Botones aprobación -->
                 </div>
                 <div id="modal-actions-right" class="d-flex flex-wrap gap-2">
+                    <?php if (\App\Core\Security::can('pedidos.gestionar')): ?>
                     <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 d-none"
                         id="btn-edit-order">
                         <i class="bi bi-pencil me-1"></i>Editar
                     </button>
+                    <?php endif; ?>
                     <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4"
                         data-bs-dismiss="modal">Cerrar</button>
                 </div>
@@ -670,7 +674,8 @@ function pageLink($page, $filters, $orderBy, $orderDir)
         const actionsLeft = document.getElementById('modal-actions-left');
         actionsLeft.innerHTML = '';
         const hasDigital = d.items.some(i => i.is_digital == 1);
-        if (hasDigital && d.digital_approved == 0) {
+        const canManage = <?= \App\Core\Security::can('pedidos.gestionar') ? 'true' : 'false' ?>;
+        if (hasDigital && d.digital_approved == 0 && canManage) {
             actionsLeft.innerHTML = `
                 <button class="btn btn-success btn-sm rounded-pill px-3" onclick="aprobarDigital(${d.id})">
                     <i class="bi bi-cloud-check me-1"></i>Aprobar Entrega Digital

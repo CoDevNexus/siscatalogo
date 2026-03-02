@@ -4,7 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($title) ?> — <?= defined('APP_NAME') ? APP_NAME : 'Admin' ?></title>
+    <title>
+        <?= htmlspecialchars($title) ?> —
+        <?= defined('APP_NAME') ? APP_NAME : 'Admin' ?>
+    </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
@@ -30,7 +33,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             padding: 20px;
         }
 
@@ -41,7 +44,7 @@
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: 40px 36px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, .5);
             animation: slideUp .35s ease;
         }
 
@@ -154,6 +157,16 @@
             margin-bottom: 18px;
         }
 
+        .auth-alert-success {
+            background: rgba(34, 197, 94, .12);
+            border: 1px solid rgba(34, 197, 94, .3);
+            color: #86efac;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: .88rem;
+            margin-bottom: 18px;
+        }
+
         .auth-link {
             color: var(--text-muted);
             font-size: .82rem;
@@ -170,20 +183,16 @@
             background: var(--border);
             margin: 22px 0;
         }
-
-        .honeypot {
-            display: none !important;
-        }
     </style>
 </head>
 
 <body>
     <div class="auth-card">
         <div class="auth-icon">
-            <i class="bi bi-shield-lock-fill"></i>
+            <i class="bi bi-envelope-at"></i>
         </div>
-        <div class="auth-title">Acceso al Sistema</div>
-        <div class="auth-subtitle">Panel de administración</div>
+        <div class="auth-title">Recuperar contraseña</div>
+        <div class="auth-subtitle">Ingresa tu correo o nombre de usuario registrado</div>
 
         <?php if (!empty($error)): ?>
             <div class="auth-alert-danger">
@@ -192,52 +201,34 @@
             </div>
         <?php endif; ?>
 
-        <?php if (!empty($_SESSION['login_success'])): ?>
-            <div class="auth-alert-danger"
-                style="background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:#86efac;">
+        <?php if (!empty($success)): ?>
+            <div class="auth-alert-success">
                 <i class="bi bi-check-circle-fill me-1"></i>
-                <?= htmlspecialchars($_SESSION['login_success']) ?>
+                <?= htmlspecialchars($success) ?>
             </div>
-            <?php unset($_SESSION['login_success']); ?>
+        <?php else: ?>
+            <form action="<?= APP_URL ?>syslogin/forgot_send" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+
+                <div class="mb-4">
+                    <label for="email" class="form-label">Correo electrónico o Usuario</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person-circle"></i></span>
+                        <input type="text" class="form-control" id="email" name="email" required
+                            placeholder="correo@ejemplo.com o: admin" autocomplete="username">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-auth">
+                    <i class="bi bi-send me-2"></i>Enviar enlace de recuperación
+                </button>
+            </form>
         <?php endif; ?>
 
-        <form action="<?= APP_URL ?>syslogin/auth" method="POST" autocomplete="off">
-            <!-- Token CSRF Obligatorio -->
-            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-            <!-- Honeypot -->
-            <input type="text" name="website_url" class="honeypot" tabindex="-1" autocomplete="off">
-
-            <div class="mb-3">
-                <label for="username" class="form-label">Usuario</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input type="text" class="form-control" id="username" name="username" required autocomplete="off"
-                        placeholder="Nombre de usuario">
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <label for="password" class="form-label">Contraseña</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-key"></i></span>
-                    <input type="password" class="form-control" id="password" name="password" required
-                        placeholder="••••••••">
-                </div>
-            </div>
-
-            <button type="submit" class="btn-auth">
-                <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
-            </button>
-        </form>
-
         <div class="divider"></div>
-
-        <div class="d-flex justify-content-between">
-            <a href="<?= APP_URL ?>" class="auth-link">
-                <i class="bi bi-arrow-left"></i> Catálogo
-            </a>
-            <a href="<?= APP_URL ?>syslogin/forgot" class="auth-link">
-                ¿Olvidaste tu contraseña?
+        <div class="text-center">
+            <a href="<?= APP_URL ?>syslogin" class="auth-link">
+                <i class="bi bi-arrow-left me-1"></i>Volver al inicio de sesión
             </a>
         </div>
     </div>

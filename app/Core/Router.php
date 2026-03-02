@@ -23,6 +23,10 @@ class Router
                 $params = array_slice($url, 1);
                 $url[1] = 'ver';
                 // El resto (slug) se mantiene como parámetros
+            } elseif ($url[0] === 'nosotros') {
+                // nosotros -> HomeController/nosotros
+                $url[0] = 'home';
+                $url[1] = 'nosotros';
             }
         }
 

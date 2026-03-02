@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Models\HomeModel;
 
 class ProductosController extends Controller
 {
@@ -14,9 +15,12 @@ class ProductosController extends Controller
         $filterType = isset($_GET['tipo']) ? $_GET['tipo'] : null;
         $search = isset($_GET['q']) ? trim($_GET['q']) : null;
 
+        $homeModel = new HomeModel();
+
         // Podríamos implementar paginación aquí en el futuro si el catálogo crece mucho
         $productos = $productoModel->getActive($filterCat, $filterType, $search);
         $categorias = $categoryModel->getAll();
+        $settings = $homeModel->getSettings();
 
         $data = [
             'title' => 'Catálogo de Productos',
@@ -24,7 +28,8 @@ class ProductosController extends Controller
             'categorias' => $categorias,
             'filterCat' => $filterCat,
             'filterType' => $filterType,
-            'search' => $search
+            'search' => $search,
+            'settings' => $settings
         ];
 
         $this->view('productos/index', $data);

@@ -55,7 +55,8 @@
                                 <td class="px-4 py-3">
                                     <div class="form-check form-switch card-body p-0">
                                         <input class="form-check-input update-status" type="checkbox"
-                                            data-id="<?= $acc['id'] ?>" <?= $isActive ? 'checked' : '' ?>>
+                                            data-id="<?= $acc['id'] ?>" <?= $isActive ? 'checked' : '' ?>
+                                            <?= \App\Core\Security::can('digitales.gestionar') ? '' : 'disabled' ?>>
                                         <label class="form-check-label small"><?= $isActive ? 'Activo' : 'Inactivo' ?></label>
                                     </div>
                                 </td>
@@ -74,7 +75,7 @@
                                         <span class="input-group-text bg-white fw-bold"><?= $acc['downloads_count'] ?> /</span>
                                         <input type="number" class="form-control text-center update-limit"
                                             data-id="<?= $acc['id'] ?>" value="<?= $maxDownloads ?>" min="0"
-                                            style="width: 50px;">
+                                            style="width: 50px;" <?= \App\Core\Security::can('digitales.gestionar') ? '' : 'disabled' ?>>
                                     </div>
                                     <?php if ($isExceeded && $isActive): ?>
                                         <small class="text-danger d-block mt-1"><i class="bi bi-exclamation-triangle"></i> Límite

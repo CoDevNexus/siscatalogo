@@ -397,13 +397,21 @@ body {
 /* ─── Carrito flotante ─── */
 #cart-float {
     position: fixed;
-    bottom: 24px;
-    left: 24px;
+    bottom: 40%;
+    right: 24px;
     z-index: 1050;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 10px;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    /* Previene scroll durante drag en móviles */
+}
+
+#cart-float:active {
+    cursor: grabbing;
 }
 
 .cart-float-btn {
@@ -445,8 +453,11 @@ body {
 #cart-panel {
     position: fixed;
     top: 0;
-    right: -400px;
+    right: -100%;
+    /* Oculta el panel completamente fuera de la pantalla en cualquier dispositivo */
     width: 380px;
+    max-width: 100vw;
+    /* Asegura que en móviles no sea más ancho que la propia pantalla */
     height: 100vh;
     background: #fff;
     z-index: 1100;
@@ -625,6 +636,39 @@ body {
     font-family: 'Outfit', sans-serif;
 }
 
+/* Responsive Home Slider Typography */
+.slider-title-responsive {
+    font-size: 2rem;
+    line-height: 1.2;
+}
+
+.slider-title-responsive * {
+    font-size: inherit !important;
+    /* Forza heredar el tamaño de la capa superior para los divs internos de Quill */
+    line-height: inherit;
+}
+
+.slider-subtitle-responsive {
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.slider-subtitle-responsive * {
+    font-size: inherit !important;
+}
+
+@media (min-width: 768px) {
+    .slider-title-responsive {
+        font-size: 3.5rem;
+        /* ~ display-3 */
+    }
+
+    .slider-subtitle-responsive {
+        font-size: 1.25rem;
+        /* ~ lead */
+    }
+}
+
 .proforma-header {
     border-bottom: 3px solid var(--primary);
     padding-bottom: 20px;
@@ -711,6 +755,46 @@ body {
     }
 
     .proforma-card {
-        padding: 20px;
+        padding: 20px 12px;
+        margin: 0;
+        box-shadow: none;
+    }
+
+    .proforma-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .proforma-header .text-end {
+        text-align: center !important;
+        margin-top: 15px;
+        width: 100%;
+    }
+
+    .proforma-table th,
+    .proforma-table td {
+        padding: 8px 6px;
+        font-size: 0.8rem;
+    }
+
+    .proforma-table th:first-child,
+    .proforma-table td:first-child {
+        width: 45%;
+    }
+
+    .proforma-card .row.mb-4 .col-6 {
+        width: 100%;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .proforma-card .col-4.border.rounded {
+        width: 100%;
+        margin-top: 15px;
+    }
+
+    .proforma-card .col-8 {
+        width: 100%;
     }
 }

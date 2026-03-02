@@ -101,8 +101,9 @@ class ProductoModel extends Model
             $params['cat'] = $category_id;
         }
         if ($type) {
-            $sql .= " AND c.type = :type"; // Nota: El tipo está en categorías
-            $params['type'] = $type;
+            $mappedType = ($type === 'fisico') ? 'physical' : (($type === 'digital') ? 'digital' : $type);
+            $sql .= " AND c.type = :type";
+            $params['type'] = $mappedType;
         }
         if ($search) {
             $sql .= " AND (p.name LIKE :search1 OR p.description LIKE :search2)";

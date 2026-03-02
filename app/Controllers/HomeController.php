@@ -9,20 +9,28 @@ class HomeController extends Controller
     {
         $productoModel = $this->model('ProductoModel');
         $portfolioModel = $this->model('PortfolioModel');
+        $homeModel = $this->model('HomeModel');
 
-        // Cargar 6 productos destacados (los más recientes activos)
+        // Cargar 6 productos destacados
         $productos = $productoModel->getFeatured(6);
 
-        // Cargar 3 casos de éxito más recientes
+        // Cargar 3 casos de éxito
         $casos = $portfolioModel->getAll(3, 0);
+
+        // Cargar datos del slider y configuraciones
+        $slides = $homeModel->getActiveSlides();
+        $settings = $homeModel->getSettings();
 
         $data = [
             'title' => 'Inicio',
             'productos' => $productos,
             'casos' => $casos,
+            'slides' => $slides,
+            'settings' => $settings,
         ];
 
         $this->view('home/index', $data);
+
     }
 
     public function portfolio()

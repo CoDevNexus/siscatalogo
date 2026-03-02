@@ -1,0 +1,40 @@
+# Dependencias
+/vendor/
+/node_modules/
+
+# Configuración Sensible (Generada por el instalador)
+/config/config.php
+
+# Almacenamiento y Cargas (Mantener carpetas pero ignorar contenido)
+/storage/productos/*
+/storage/digital/*
+/storage/logs/*
+!/storage/productos/.gitkeep
+!/storage/digital/.gitkeep
+!/storage/logs/.gitkeep
+
+# Archivos Temporales
+/tmp/*
+/temp/*
+!/tmp/.gitkeep
+
+# Base de Datos
+*.sql
+!/database/schema.sql
+!/database/essential_data.sql
+!/database/demo_data.sql
+
+# IDEs y Editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Sistema Operativo
+Thumbs.db
+.DS_Store
+
+# Otros
+.gemini/
+error_log
+php_errors.log

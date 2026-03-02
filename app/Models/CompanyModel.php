@@ -53,7 +53,14 @@ class CompanyModel extends Model
                     smtp_pass         = :smtp_pass,
                     smtp_encryption   = :smtp_encryption,
                     smtp_from_email   = :smtp_from_email,
-                    smtp_from_name    = :smtp_from_name
+                    smtp_from_name    = :smtp_from_name,
+                    telegram_token    = :telegram_token,
+                    telegram_chat_id  = :telegram_chat_id,
+                    telegram_active   = :telegram_active,
+                    theme_primary     = :theme_primary,
+                    theme_accent      = :theme_accent,
+                    theme_navbar      = :theme_navbar,
+                    theme_footer      = :theme_footer
                 WHERE id = 1";
 
         $wa = $data['phone_whatsapp'] ?? '';
@@ -86,6 +93,13 @@ class CompanyModel extends Model
             'smtp_encryption' => $data['smtp_encryption'] ?? 'tls',
             'smtp_from_email' => $data['smtp_from_email'] ?? '',
             'smtp_from_name' => $data['smtp_from_name'] ?? '',
+            'telegram_token' => $data['telegram_token'] ?? '',
+            'telegram_chat_id' => $data['telegram_chat_id'] ?? '',
+            'telegram_active' => isset($data['telegram_active']) ? 1 : 0,
+            'theme_primary' => $data['theme_primary'] ?? '#2b2d42',
+            'theme_accent' => $data['theme_accent'] ?? '#ef233c',
+            'theme_navbar' => $data['theme_navbar'] ?? '',
+            'theme_footer' => $data['theme_footer'] ?? '',
         ]);
     }
 

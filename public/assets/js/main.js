@@ -250,7 +250,14 @@ function openProductModal(data) {
         };
         Cart.add(product);
         mEl.hide();
-        openCart();
+
+        // Animación breve del botón flotante para dar feedback extra
+        const floatBtn = document.querySelector('.cart-float-btn');
+        if (floatBtn) {
+            floatBtn.style.transform = 'scale(1.2)';
+            setTimeout(() => floatBtn.style.transform = '', 200);
+        }
+
         Swal.fire({
             icon: 'success', title: '¡Añadido!',
             text: `${product.name} × ${product.qty} añadido al pedido.`,
@@ -262,7 +269,8 @@ function openProductModal(data) {
     // WhatsApp
     const phone = (typeof COMPANY !== 'undefined' && COMPANY.whatsapp) ? COMPANY.whatsapp : '';
     modal.querySelector('#btn-whatsapp').onclick = () => {
-        const msg = encodeURIComponent(`Hola, me interesa el producto *${data.name}*. ¿Me pueden dar más información?`);
+        const productUrl = window.location.origin + window.location.pathname + '?id=' + data.id;
+        const msg = encodeURIComponent(`Hola, me interesa el producto *${data.name}*. \n\nEnlace: ${productUrl}\n\n¿Me pueden dar más información?`);
         const url = phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
         window.open(url, '_blank');
     };
@@ -427,7 +435,8 @@ function generateProforma() {
         ${COMPANY.terms ? `<em>${COMPANY.terms}</em><br>` : ''}
     ` : '';
 
-    const html = `
+    // Función para generar HTML ahora acepta num de pedido
+    const generateReceiptHtml = (orderNumCode) => `
     <div class="proforma-card" id="proforma-print">
         <div class="proforma-header d-flex justify-content-between">
             <div>
@@ -437,8 +446,8 @@ function generateProforma() {
                 ${companyInfoHtml}
             </div>
             <div class="text-end">
-                <h5 style="color:var(--primary);font-weight:700">PROFORMA</h5>
-                <div style="font-size:.9rem;color:#555">${proformaNum}<br>${now}</div>
+                <h5 style="color:var(--primary);font-weight:700">PEDIDO</h5>
+                <div style="font-size:.9rem;color:#555">${orderNumCode}<br>${now}</div>
             </div>
         </div>
         <div class="row mb-4" style="font-size:.9rem">
@@ -501,9 +510,10 @@ function generateProforma() {
             </div>
         </div>
         </div>
+        </div>
         <div style="color:#888;font-size:.8rem;border-top:1px solid #eee;padding-top:12px;text-align:center;">
             ${footerExtras}
-            Esta proforma es válida por 48 horas. Los precios pueden cambiar sin previo aviso.
+            Este es un comprobante de su pedido. Los precios pueden cambiar sin previo aviso.
         </div>
     </div>`;
 
@@ -525,10 +535,25 @@ function generateProforma() {
     };
 
     // Guardar en BD vía AJAX
+    let currentStep = 0;
+    const steps = [
+        '<div class="text-start mt-3"><div class="mb-2"><i class="bi bi-database text-primary me-2"></i>Guardando su proforma... <span class="spinner-border spinner-border-sm ms-2" style="font-size: 0.5rem"></span></div><div class="mb-2 text-muted" style="opacity:0.5"><i class="bi bi-envelope me-2"></i>Preparando copias por correo...</div><div class="text-muted" style="opacity:0.5"><i class="bi bi-telegram me-2"></i>Notificando al taller...</div></div>',
+        '<div class="text-start mt-3"><div class="mb-2 text-success"><i class="bi bi-check-circle me-2"></i>Proforma guardada con éxito.<br></div><div class="mb-2"><i class="bi bi-envelope text-info me-2"></i>Preparando copias por correo... <span class="spinner-border spinner-border-sm ms-2" style="font-size: 0.5rem"></span></div><div class="text-muted" style="opacity:0.5"><i class="bi bi-telegram me-2"></i>Notificando al taller...</div></div>',
+        '<div class="text-start mt-3"><div class="mb-2 text-success"><i class="bi bi-check-circle me-2"></i>Proforma guardada con éxito.</div><div class="mb-2 text-success"><i class="bi bi-check-circle me-2"></i>Copias enviadas por correo.</div><div><i class="bi bi-telegram text-info me-2"></i>Notificando al taller... <span class="spinner-border spinner-border-sm ms-2" style="font-size: 0.5rem"></span></div></div>',
+        '<div class="text-start mt-3"><div class="mb-2 text-success"><i class="bi bi-check-circle me-2"></i>Proforma guardada con éxito.</div><div class="mb-2 text-success"><i class="bi bi-check-circle me-2"></i>Copias enviadas por correo.</div><div class="text-success"><i class="bi bi-check-circle me-2"></i>Taller notificado. ¡Todo listo!</div></div>'
+    ];
+
     Swal.fire({
-        title: 'Procesando pedido...',
-        html: 'Estamos guardando su proforma...',
-        didOpen: () => { Swal.showLoading(); }
+        title: 'Procesando pedido',
+        html: steps[0],
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            // Avanzar falsamente la UI mientras carga el servidor (ya que el PHP hace todo de corrido)
+            setTimeout(() => { if (Swal.isVisible() && currentStep < 1) { currentStep = 1; Swal.update({ html: steps[1] }); } }, 1200);
+            setTimeout(() => { if (Swal.isVisible() && currentStep < 2) { currentStep = 2; Swal.update({ html: steps[2] }); } }, 2500);
+        }
     });
 
     fetch(APP_URL + 'cotizacion/confirmar', {
@@ -538,42 +563,50 @@ function generateProforma() {
     })
         .then(r => r.json())
         .then(res => {
-            Swal.close();
             if (res.status === 'success') {
-                orderData.id = res.order_id;
-                window.currentProformaData = orderData;
-                window.currentProformaNum = proformaNum;
+                // Completar UI y cerrar rápido
+                currentStep = 3;
+                Swal.update({ html: steps[3] });
 
-                const proformaModal = new bootstrap.Modal(document.getElementById('proformaModal'));
-                document.getElementById('proforma-container').innerHTML = html;
+                setTimeout(() => {
+                    Swal.close();
 
-                // Cerrar checkout y abrir proforma
-                bootstrap.Modal.getInstance(document.getElementById('checkoutModal'))?.hide();
-                proformaModal.show();
+                    orderData.id = res.order_id;
+                    const finalOrderNum = 'PED-' + res.order_id.toString().padStart(6, '0');
+                    window.currentProformaData = orderData;
+                    window.currentProformaNum = finalOrderNum;
 
-                // Vaciar carrito
-                Cart.clear();
-                Cart.renderPanel();
+                    const proformaModal = new bootstrap.Modal(document.getElementById('proformaModal'));
+                    document.getElementById('proforma-container').innerHTML = generateReceiptHtml(finalOrderNum);
+
+                    bootstrap.Modal.getInstance(document.getElementById('checkoutModal'))?.hide();
+                    proformaModal.show();
+
+                    Cart.clear();
+                    Cart.renderPanel();
+                }, 800);
+
             } else {
+                Swal.close();
                 Swal.fire('Error', res.message || 'No se pudo guardar el pedido.', 'error');
             }
         })
         .catch(err => {
             Swal.close();
             console.error(err);
-            Swal.fire('Error', 'Error de comunicación con el servidor.', 'error');
+            Swal.fire('Error', 'Error de comunicación local.', 'error');
         });
 }
 
 function generateExportableHtml(d, profNum) {
-    const logoHtml = (typeof COMPANY !== 'undefined' && COMPANY.logo) ? `<img src="${COMPANY.logo}" style="max-height: 80px; max-width: 250px; object-fit: contain;">` : `<h2 style="margin:0;color:#0275d8;">${(typeof COMPANY !== 'undefined' && COMPANY.name) ? COMPANY.name : 'Proforma'}</h2>`;
+    const logoHtml = (typeof COMPANY !== 'undefined' && COMPANY.logo) ? `<img src="${COMPANY.logo}" style="max-height: 80px; max-width: 250px; object-fit: contain;">` : `<h2 style="margin:0;color:#0275d8;">${(typeof COMPANY !== 'undefined' && COMPANY.name) ? COMPANY.name : 'Pedido'}</h2>`;
     const co = typeof COMPANY !== 'undefined' ? COMPANY : {};
 
     const itemsHtml = d.items.map(i => `
         <tr>
             <td style="padding: 12px; border-bottom: 1px solid #eee; color: #333;">
                 <strong>${i.name}</strong>
-                ${i.note ? `<div style="font-size: 11px; color: #666; margin-top: 4px;">Nota: ${i.note}</div>` : ''}
+                ${i.note ? '<div style="font-size: 11px; color: #666; margin-top: 4px;">Nota: ' + i.note + '</div>' : ''}
             </td>
             <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; color: #333;">${i.qty}</td>
             <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right; color: #333;">$${parseFloat(i.price).toFixed(2)}</td>
@@ -581,10 +614,15 @@ function generateExportableHtml(d, profNum) {
         </tr>
     `).join('');
 
-    const subtotal = d.subtotal;
     const now = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' });
 
     return `
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Pedido ${profNum}</title>
+    </head>
+    <body>
     <div style="width: 800px; padding: 40px 50px; background: #ffffff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; box-sizing: border-box;">
         <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #f0f0f0; padding-bottom: 20px; margin-bottom: 30px;">
             <div style="max-width: 65%; display: flex; align-items: flex-start; gap: 20px;">
@@ -599,13 +637,13 @@ function generateExportableHtml(d, profNum) {
                 </div>
             </div>
             <div style="text-align: right;">
-                <h1 style="margin: 0 0 5px 0; color: #2c3e50; font-size: 28px; font-weight: 700; letter-spacing: 1px;">PROFORMA</h1>
-                <div style="font-size: 16px; color: #e74c3c; font-weight: bold;"># ${d.id || profNum}</div>
+                <h1 style="margin: 0 0 5px 0; color: #2c3e50; font-size: 28px; font-weight: 700; letter-spacing: 1px;">PEDIDO</h1>
+                <div style="font-size: 16px; color: #e74c3c; font-weight: bold;"># ${profNum}</div>
                 <div style="font-size: 13px; color: #888; margin-top: 5px;">Fecha: ${now}</div>
             </div>
         </div>
 
-        <div style="margin-bottom: 20px; background: #f8f9fa; padding: 10px 15px; border-radius: 8px border-left: 4px solid #0275d8;">
+        <div style="margin-bottom: 20px; background: #f8f9fa; padding: 10px 15px; border-radius: 8px; border-left: 4px solid #0275d8;">
             <h3 style="margin: 0 0 6px 0; font-size: 12px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px;">Facturar a:</h3>
             <div style="font-size: 13px; color: #333; line-height: 1.3; display: flex; flex-wrap: wrap; gap: 6px 30px;">
                 <div style="flex: 1 1 100%;"><span style="font-size: 15px; font-weight: bold; color: #0275d8;">${d.customer_name}</span></div>
@@ -635,7 +673,7 @@ function generateExportableHtml(d, profNum) {
             <div style="width: 320px;">
                 <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; color: #555;">
                     <span>Subtotal:</span>
-                    <span>$${parseFloat(subtotal).toFixed(2)}</span>
+                    <span>$${parseFloat(d.subtotal).toFixed(2)}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; color: #555;">
                     <span>Envío:</span>
@@ -656,75 +694,108 @@ function generateExportableHtml(d, profNum) {
         ${co.footer_image ? `<div style="margin-top: 30px; text-align: center;"><img src="${co.footer_image}" style="max-width: 100%; max-height: 120px; border-radius: 8px; object-fit: contain;"></div>` : ''}
         <div style="margin-top: ${co.footer_image ? '20px' : '40px'}; text-align: center; font-size: 11px; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 15px; line-height: 1.5;">
             <div style="font-size: 13px; color: #2c3e50; margin-bottom: 5px;"><strong>${co.thanks ? co.thanks : '¡Gracias por su preferencia!'}</strong></div>
-            ${co.terms ? `<em style="color:#999;">${co.terms}</em>` : '<span style="color:#999;font-size: 11px;">Proforma válida por 48 horas laborables.</span>'}
+            ${co.terms ? `<em style="color:#999;">${co.terms}</em>` : '<span style="color:#999;font-size: 11px;">Pedido válido por 48 horas laborables.</span>'}
         </div>
-    </div>`;
+    </div>
+    </body>
+    </html>`;
 }
 
 function downloadProforma() {
-    if (!window.currentProformaData) return;
-    Swal.fire({ title: 'Generando imagen...', didOpen: () => Swal.showLoading() });
+    const data = window.currentProformaData;
+    const num = window.currentProformaNum;
+    if (!data) return;
 
-    if (typeof html2canvas === 'undefined') {
-        Swal.fire('Error', 'La librería html2canvas no está disponible.', 'error');
-        return;
-    }
+    Swal.fire({
+        title: 'Generando imagen...',
+        text: 'Por favor espere.',
+        didOpen: () => { Swal.showLoading(); }
+    });
 
     const container = document.createElement('div');
     container.style.position = 'absolute';
     container.style.left = '-9999px';
     container.style.top = '0';
-    container.innerHTML = generateExportableHtml(window.currentProformaData, window.currentProformaNum);
+    container.innerHTML = generateExportableHtml(data, num);
     document.body.appendChild(container);
 
     setTimeout(() => {
+        if (typeof html2canvas === 'undefined') {
+            document.body.removeChild(container);
+            Swal.fire('Error', 'La librería de generación no está cargada.', 'error');
+            return;
+        }
+
         html2canvas(container.firstElementChild, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
             document.body.removeChild(container);
             Swal.close();
-            const a = document.createElement('a');
-            a.download = 'proforma-' + (window.currentProformaData.id || Date.now()) + '.png';
-            a.href = canvas.toDataURL('image/png');
-            a.click();
-        }).catch(() => {
+
+            const link = document.createElement('a');
+            link.download = `Pedido_${num}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }).catch(err => {
             if (document.body.contains(container)) document.body.removeChild(container);
+            console.error(err);
             Swal.fire('Error', 'No se pudo generar la imagen.', 'error');
         });
-    }, 300);
+    }, 500);
 }
 
 function copyProforma() {
-    if (!window.currentProformaData) return;
-    if (typeof html2canvas === 'undefined') {
-        Swal.fire('Error', 'La librería html2canvas no está disponible.', 'error');
-        return;
-    }
+    const data = window.currentProformaData;
+    const num = window.currentProformaNum;
+    if (!data) return;
 
-    Swal.fire({ title: 'Generando imagen...', didOpen: () => Swal.showLoading() });
+    const btn = document.getElementById('btn-copy-proforma');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Copiando...';
+    btn.disabled = true;
 
     const container = document.createElement('div');
     container.style.position = 'absolute';
     container.style.left = '-9999px';
     container.style.top = '0';
-    container.innerHTML = generateExportableHtml(window.currentProformaData, window.currentProformaNum);
+    container.innerHTML = generateExportableHtml(data, num);
     document.body.appendChild(container);
 
     setTimeout(() => {
-        html2canvas(container.firstElementChild, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(async canvas => {
+        if (typeof html2canvas === 'undefined') {
             document.body.removeChild(container);
-            canvas.toBlob(async (blob) => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            Swal.fire('Error', 'La librería de generación no está cargada.', 'error');
+            return;
+        }
+
+        html2canvas(container.firstElementChild, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+            document.body.removeChild(container);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+
+            canvas.toBlob(async blob => {
                 try {
-                    const item = new ClipboardItem({ "image/png": blob });
-                    await navigator.clipboard.write([item]);
-                    Swal.fire({ icon: 'success', title: '¡Copiado!', text: 'La proforma ha sido copiada al portapapeles.', timer: 2000, showConfirmButton: false });
-                } catch (e) {
-                    Swal.fire('Error', 'No se pudo copiar la imagen al portapapeles.', 'error');
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]);
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'success',
+                        title: '¡Imagen copiada al portapapeles!', showConfirmButton: false, timer: 3000
+                    });
+                } catch (err) {
+                    console.error('Error al copiar:', err);
+                    Swal.fire('Atención', 'Tu navegador bloqueó el copiado automático. Usa el botón "Descargar Imagen" en su lugar.', 'warning');
                 }
             });
-        }).catch(() => {
+        }).catch(err => {
             if (document.body.contains(container)) document.body.removeChild(container);
-            Swal.fire('Error', 'No se pudo generar la copia.', 'error');
+            console.error(err);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            Swal.fire('Error', 'No se pudo generar la imagen para copiar.', 'error');
         });
-    }, 300);
+    }, 500);
 }
 
 // ─────────────────────────────────────────
@@ -747,6 +818,81 @@ function openPortfolioItem(imgSrc, title, description) {
 //  INIT
 // ─────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+
+    // ─────────────────────────────────────────
+    // CARRITO ARRASTRABLE (DRAG & DROP)
+    // ─────────────────────────────────────────
+    const cartFloat = document.getElementById('cart-float');
+    if (cartFloat) {
+        let isDragging = false;
+        let diffX = 0, diffY = 0;
+        let wasDragged = false;
+
+        const onDragStart = (e) => {
+            // No prevenimos default si es touchstart en móviles para botones internos, solo procesamos coords
+            if (e.type === 'mousedown') e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const rect = cartFloat.getBoundingClientRect();
+            diffX = clientX - rect.left;
+            diffY = clientY - rect.top;
+
+            isDragging = true;
+            wasDragged = false;
+            cartFloat.style.transition = 'none';
+
+            document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('mouseup', onDragEnd);
+            document.addEventListener('touchmove', onDragMove, { passive: false });
+            document.addEventListener('touchend', onDragEnd);
+        };
+
+        const onDragMove = (e) => {
+            if (!isDragging) return;
+            // Prevenir scroll de la página si estamos arrastrando el carrito
+            if (e.type === 'touchmove') e.preventDefault();
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            let newX = clientX - diffX;
+            let newY = clientY - diffY;
+
+            // Mantener dentro de los límites de pantalla
+            newX = Math.max(0, Math.min(newX, window.innerWidth - cartFloat.offsetWidth));
+            newY = Math.max(0, Math.min(newY, window.innerHeight - cartFloat.offsetHeight));
+
+            cartFloat.style.left = newX + 'px';
+            cartFloat.style.top = newY + 'px';
+            cartFloat.style.right = 'auto'; // Anular ancla derecha del CSS
+            cartFloat.style.bottom = 'auto'; // Anular ancla bottom del CSS
+
+            wasDragged = true;
+        };
+
+        const onDragEnd = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            cartFloat.style.transition = ''; // Restaurar hover transitions
+
+            document.removeEventListener('mousemove', onDragMove);
+            document.removeEventListener('mouseup', onDragEnd);
+            document.removeEventListener('touchmove', onDragMove);
+            document.removeEventListener('touchend', onDragEnd);
+        };
+
+        cartFloat.addEventListener('mousedown', onDragStart);
+        cartFloat.addEventListener('touchstart', onDragStart, { passive: false });
+
+        // Prevenir la apertura del panel si el usuario solo estaba arrastrando
+        cartFloat.addEventListener('click', (e) => {
+            if (wasDragged) {
+                e.preventDefault();
+                e.stopImmediatePropagation(); // Evita que [data-open-cart] capture el click
+            }
+        }, true); // Captura temprana
+    }
 
     // Inicializar badge
     Cart.updateBadge();

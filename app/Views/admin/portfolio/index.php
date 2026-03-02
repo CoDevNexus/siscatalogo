@@ -5,9 +5,11 @@
             <p class="text-muted small">Administra tus Casos de Éxito y trabajos destacados.</p>
         </div>
         <div class="col-md-6 text-md-end">
-            <a href="<?= APP_URL ?>admin/portfolio_nuevo" class="btn btn-primary rounded-pill px-4 shadow-sm">
-                <i class="bi bi-plus-lg me-1"></i>Nuevo Caso de Éxito
-            </a>
+            <?php if (\App\Core\Security::can('portfolio.crear')): ?>
+                <a href="<?= APP_URL ?>admin/portfolio_nuevo" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-plus-lg me-1"></i>Nuevo Caso de Éxito
+                </a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -83,15 +85,19 @@
                                                 class="btn btn-sm btn-white border" title="Ver en Portal">
                                                 <i class="bi bi-eye text-primary"></i>
                                             </a>
-                                            <a href="<?= APP_URL ?>admin/portfolio_editar/<?= $item['id'] ?>"
-                                                class="btn btn-sm btn-white border" title="Editar">
-                                                <i class="bi bi-pencil text-success"></i>
-                                            </a>
-                                            <button class="btn btn-sm btn-white border"
-                                                onclick="eliminarItem(<?= $item['id'] ?>, '<?= addslashes($item['titulo']) ?>')"
-                                                title="Eliminar">
-                                                <i class="bi bi-trash text-danger"></i>
-                                            </button>
+                                            <?php if (\App\Core\Security::can('portfolio.gestionar')): ?>
+                                                <a href="<?= APP_URL ?>admin/portfolio_editar/<?= $item['id'] ?>"
+                                                    class="btn btn-sm btn-white border" title="Editar">
+                                                    <i class="bi bi-pencil text-success"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if (\App\Core\Security::can('portfolio.eliminar')): ?>
+                                                <button class="btn btn-sm btn-white border"
+                                                    onclick="eliminarItem(<?= $item['id'] ?>, '<?= addslashes($item['titulo']) ?>')"
+                                                    title="Eliminar">
+                                                    <i class="bi bi-trash text-danger"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>

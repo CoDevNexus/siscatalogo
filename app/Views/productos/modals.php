@@ -109,7 +109,7 @@
         </div>
         <div class="d-grid gap-2">
             <button id="btn-checkout" class="btn btn-primary py-2 fw-bold rounded-3">
-                <i class="bi bi-wallet2 me-2"></i>Confirmar Pedido y Generar Proforma
+                <i class="bi bi-wallet2 me-2"></i>Confirmar Pedido
             </button>
             <button id="btn-clear-cart" class="btn btn-outline-danger btn-sm">
                 <i class="bi bi-trash3 me-1"></i>Vaciar carrito
@@ -190,7 +190,7 @@
                                             Factura
                                         </label>
                                         <div class="small text-muted mt-1" style="font-size: 0.73rem;">Se aplicará IVA
-                                            sobre el total de su proforma.</div>
+                                            sobre el total de su pedido.</div>
                                     </div>
                                 </div>
                             </div>
@@ -233,7 +233,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content rounded-4 border-0">
             <div class="modal-header border-0 px-4 pt-4">
-                <h5 class="fw-bold"><i class="bi bi-file-earmark-check me-2 text-success"></i>Proforma Generada</h5>
+                <h5 class="fw-bold"><i class="bi bi-file-earmark-check me-2 text-success"></i>Pedido Generado</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body px-4" id="proforma-container"></div>

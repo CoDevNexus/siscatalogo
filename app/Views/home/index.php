@@ -1,53 +1,65 @@
 <!-- ========= HERO SLIDER ========= -->
 <div id="heroCarousel" class="carousel slide carousel-fade mb-5 shadow-sm rounded-4 overflow-hidden"
     data-bs-ride="carousel">
-    <div class="carousel-indicators">
-        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active"></button>
-        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
-        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
-    </div>
-    <div class="carousel-inner">
-        <div class="carousel-item active" style="height: 450px;">
-            <img src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=2070"
-                class="d-block w-100 h-100 object-fit-cover" alt="Corte Láser">
-            <div class="carousel-caption d-none d-md-block text-start pb-5 mb-4">
-                <span class="badge bg-danger mb-3 px-3 py-2 rounded-pill fw-normal fs-6">Precision Láser</span>
-                <h1 class="display-3 fw-bold mb-3">Eleva tu Marca con <br>Corte Láser Profesional</h1>
-                <p class="lead mb-4 opacity-90">Personalizamos MDF, acrílico y grabados de alta calidad.</p>
-                <a href="<?= APP_URL ?>productos" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow">Explorar
-                    Catálogo</a>
-            </div>
+    <?php if (!empty($slides)): ?>
+        <div class="carousel-indicators">
+            <?php foreach ($slides as $index => $slide): ?>
+                <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="<?= $index ?>"
+                    class="<?= $index === 0 ? 'active' : '' ?>"></button>
+            <?php endforeach; ?>
         </div>
-        <div class="carousel-item" style="height: 450px;">
-            <img src="https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&q=80&w=2070"
-                class="d-block w-100 h-100 object-fit-cover" alt="Vectores Digitales">
-            <div class="carousel-caption d-none d-md-block text-start pb-5 mb-4">
-                <span class="badge bg-primary mb-3 px-3 py-2 rounded-pill fw-normal fs-6">Diseño Digital</span>
-                <h1 class="display-3 fw-bold mb-3">Modelos Listos para <br> Cortar y Grabar</h1>
-                <p class="lead mb-4 opacity-90">Descarga archivos DXF, SVG y AI optimizados para tu máquina.</p>
-                <a href="<?= APP_URL ?>productos?tipo=digital"
-                    class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow">Ver Diseños</a>
-            </div>
+        <div class="carousel-inner">
+            <?php foreach ($slides as $index => $slide): ?>
+                <div class="carousel-item <?= $index === 0 ? 'active' : '' ?>" style="height: 450px;">
+                    <img src="<?= htmlspecialchars($slide['image_url']) ?>" class="d-block w-100 h-100 object-fit-cover"
+                        alt="Slide">
+                    <!-- Responsive Carousel Caption: Visible on all screens -->
+                    <div class="carousel-caption d-block text-start pb-4 pb-md-5 mb-2 mb-md-4 px-3 px-md-0">
+                        <!-- Custom CSS inline background para asegurar legibilidad en móviles -->
+                        <div class="p-3 p-md-0 rounded">
+                            <?php if (!empty($slide['badge'])): ?>
+                                <span
+                                    class="badge bg-danger mb-2 mb-md-3 px-2 py-1 px-md-3 py-md-2 rounded-pill fw-normal fs-7 fs-md-6">
+                                    <?= htmlspecialchars($slide['badge']) ?>
+                                </span>
+                            <?php endif; ?>
+
+                            <!-- Responsive Title: Smaller on mobile, display-3 on desktop -->
+                            <div class="fw-bold mb-2 mb-md-3 text-white slider-title-responsive">
+                                <?= $slide['title'] ?>
+                            </div>
+
+                            <!-- Responsive Subtitle -->
+                            <?php if (!empty($slide['subtitle'])): ?>
+                                <div class="mb-3 mb-md-4 opacity-90 text-white slider-subtitle-responsive">
+                                    <?= $slide['subtitle'] ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($slide['button_text']) && !empty($slide['button_link'])): ?>
+                                <a href="<?= APP_URL . htmlspecialchars($slide['button_link']) ?>"
+                                    class="btn btn-primary btn-sm btn-md-lg rounded-pill px-3 py-1 px-md-4 py-md-2 fw-bold shadow mt-2">
+                                    <?= htmlspecialchars($slide['button_text']) ?>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </div>
-        <div class="carousel-item" style="height: 450px;">
-            <img src="https://images.unsplash.com/photo-1565191999001-551c187427bb?auto=format&fit=crop&q=80&w=2070"
-                class="d-block w-100 h-100 object-fit-cover" alt="Regalos Personalizados">
-            <div class="carousel-caption d-none d-md-block text-start pb-5 mb-4">
-                <span class="badge bg-warning text-dark mb-3 px-3 py-2 rounded-pill fw-normal fs-6">Regalos
-                    Únicos</span>
-                <h1 class="display-3 fw-bold mb-3">Detalles que dejan <br> una huella eterna</h1>
-                <p class="lead mb-4 opacity-90">Tazas, llaveros y cuadros personalizados a tu gusto.</p>
-                <a href="<?= APP_URL ?>productos?cat=4"
-                    class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow">Personalizar Ahora</a>
-            </div>
+        <?php if (count($slides) > 1): ?>
+            <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+        <?php endif; ?>
+    <?php else: ?>
+        <div class="p-5 text-center bg-light">
+            <h4 class="text-muted">No hay slides activos configurados</h4>
         </div>
-    </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon"></span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-        <span class="carousel-control-next-icon"></span>
-    </button>
+    <?php endif; ?>
 </div>
 
 <!-- ========= BUSCADOR COMPACTO ========= -->
@@ -70,8 +82,10 @@
 <section class="container mb-5">
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
-            <h2 class="fw-bold mb-0">Productos Destacados</h2>
-            <p class="text-muted small mb-0">Nuestros artículos más populares y recientes.</p>
+            <h2 class="fw-bold mb-0"><?= htmlspecialchars($settings['featured_title'] ?? 'Productos Destacados') ?></h2>
+            <p class="text-muted small mb-0">
+                <?= htmlspecialchars($settings['featured_desc'] ?? 'Nuestros artículos más populares y recientes.') ?>
+            </p>
         </div>
         <a href="<?= APP_URL ?>productos" class="btn btn-outline-primary rounded-pill px-4">
             Ver Todo el Catálogo <i class="bi bi-arrow-right ms-1"></i>
@@ -150,8 +164,10 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-end mb-4">
             <div>
-                <h2 class="fw-bold mb-0">Casos de Éxito</h2>
-                <p class="text-muted small mb-0">Vea cómo hemos ayudado a elevar marcas reales.</p>
+                <h2 class="fw-bold mb-0"><?= htmlspecialchars($settings['portfolio_title'] ?? 'Casos de Éxito') ?></h2>
+                <p class="text-muted small mb-0">
+                    <?= htmlspecialchars($settings['portfolio_desc'] ?? 'Vea cómo hemos ayudado a elevar marcas reales.') ?>
+                </p>
             </div>
             <a href="<?= APP_URL ?>portafolio" class="btn btn-outline-dark rounded-pill px-4">
                 Ver Todo el Portafolio <i class="bi bi-grid ms-1"></i>
@@ -161,7 +177,8 @@
         <div class="row row-cols-1 row-cols-md-3 g-4">
             <?php foreach ($casos as $caso): ?>
                 <div class="col">
-                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden portfolio-card transition-hover">
+                    <div
+                        class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden portfolio-card transition-hover bg-white">
                         <div class="position-relative" style="height: 240px;">
                             <img src="<?= \App\Services\ImageService::buildUrl($caso['imagen_principal'], 'url') ?>"
                                 class="w-100 h-100 object-fit-cover" alt="<?= htmlspecialchars($caso['titulo']) ?>">
@@ -170,11 +187,11 @@
                                     class="btn btn-white rounded-pill px-4 shadow">Ver Detalles</a>
                             </div>
                         </div>
-                        <div class="card-body p-4 text-center">
+                        <div class="card-body p-4 text-center bg-white">
                             <span
                                 class="badge bg-soft-primary text-primary rounded-pill px-3 mb-2"><?= htmlspecialchars($caso['categoria_tecnica'] ?? 'Trabajo Especial') ?></span>
-                            <h5 class="fw-bold mb-2"><?= htmlspecialchars($caso['titulo']) ?></h5>
-                            <p class="text-muted small mb-0"><?= htmlspecialchars($caso['intro_corta']) ?></p>
+                            <h5 class="fw-bold mb-2 text-dark"><?= htmlspecialchars($caso['titulo']) ?></h5>
+                            <p class="text-secondary small mb-0"><?= htmlspecialchars($caso['intro_corta']) ?></p>
                         </div>
                     </div>
                 </div>

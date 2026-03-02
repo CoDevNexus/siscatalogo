@@ -37,8 +37,7 @@
                 $co['eslogan'] = !empty($co['eslogan']) ? htmlspecialchars($co['eslogan']) : 'Especialistas en corte láser y diseño personalizado.';
                 ?>
                 <?php if ($logoF): ?>
-                    <img src="<?= $logoF ?>" alt="Logo"
-                        style="max-height:50px;max-width:180px;object-fit:contain;filter:brightness(0) invert(1)"
+                    <img src="<?= $logoF ?>" alt="Logo" style="max-height:50px;max-width:180px;object-fit:contain;"
                         class="mb-3">
                 <?php endif; ?>
                 <h5 class="mb-2"><?= $coNameF ?></h5>
@@ -137,7 +136,7 @@
 <!-- html2canvas (para proforma descargable) -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <!-- Main JS del catálogo -->
-<script src="<?= APP_URL ?>assets/js/main.js"></script>
+<script src="<?= APP_URL ?>assets/js/main.js?v=<?= filemtime(BASE_PATH . 'public/assets/js/main.js') ?>"></script>
 
 </body>
 

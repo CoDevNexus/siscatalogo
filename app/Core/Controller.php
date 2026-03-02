@@ -27,7 +27,9 @@ class Controller
             $isAdminView = strpos($view, 'admin/') === 0;
 
             if ($isAdminView) {
-                if ($view === 'admin/login') {
+                // Vistas de autenticación — standalone sin layout admin
+                $standaloneViews = ['admin/login', 'admin/forgot_password', 'admin/reset_password'];
+                if (in_array($view, $standaloneViews)) {
                     require BASE_PATH . 'app/Views/' . $view . '.php';
                 } else {
                     if (file_exists(BASE_PATH . 'app/Views/layout/admin_header.php')) {

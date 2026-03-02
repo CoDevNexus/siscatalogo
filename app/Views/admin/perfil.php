@@ -5,6 +5,8 @@ $logo = !empty($company['logo_url'])
     ? (str_starts_with($company['logo_url'], 'http') ? $company['logo_url'] : APP_URL . $company['logo_url'])
     : null;
 $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_url'], 'http');
+$canEdit = \App\Core\Security::can('configuracion.editar');
+$disabledAttr = $canEdit ? '' : 'disabled';
 ?>
 
 <?php if (!empty($success)): ?>
@@ -66,7 +68,7 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                     <!-- Seleccionar imagen existente -->
                     <div class="mb-3">
                         <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill"
-                            data-bs-toggle="modal" data-bs-target="#imgBrowserModal">
+                            data-bs-toggle="modal" data-bs-target="#imgBrowserModal" <?= $disabledAttr ?>>
                             <i class="bi bi-folder2-open me-1"></i>Seleccionar imagen ya subida
                         </button>
                         <span id="existing-logo-label" class="text-muted small ms-2" style="display:none">
@@ -80,7 +82,7 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                     <label class="form-label small fw-bold text-muted">Subir nuevo logo <span
                             class="fw-normal">(opcional)</span></label>
                     <input class="form-control mb-3" type="file" name="logo" id="logoInput"
-                        accept=".png,.jpg,.jpeg,.svg,.webp">
+                        accept=".png,.jpg,.jpeg,.svg,.webp" <?= $disabledAttr ?>>
 
                     <!-- Destino -->
                     <label class="form-label small fw-bold text-muted d-block mb-2">¿Dónde guardar?</label>
@@ -137,6 +139,47 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                 </div>
             </div>
 
+            <!-- ── TEMA Y DISEÑO ── -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h6 class="fw-bold"><i class="bi bi-palette me-2" style="color:#ef233c"></i>Tema y Diseño del
+                        Sistema</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">Color Primario</label>
+                            <input type="color" name="theme_primary" class="form-control form-control-color w-100"
+                                value="<?= htmlspecialchars($company['theme_primary'] ?? '#2b2d42') ?>"
+                                title="Botones y elementos activos">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">Color de Acento</label>
+                            <input type="color" name="theme_accent" class="form-control form-control-color w-100"
+                                value="<?= htmlspecialchars($company['theme_accent'] ?? '#ef233c') ?>"
+                                title="Detalles e íconos">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">Navegación (Arriba)</label>
+                            <input type="color" name="theme_navbar" class="form-control form-control-color w-100"
+                                value="<?= htmlspecialchars(!empty($company['theme_navbar']) ? $company['theme_navbar'] : ($company['theme_primary'] ?? '#2b2d42')) ?>"
+                                title="Color de la barra superior">
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <label class="form-label small fw-bold text-muted">Pie de Página (Abajo)</label>
+                            <input type="color" name="theme_footer" class="form-control form-control-color w-100"
+                                value="<?= htmlspecialchars(!empty($company['theme_footer']) ? $company['theme_footer'] : ($company['theme_primary'] ?? '#2b2d42')) ?>"
+                                title="Color del pie de página">
+                        </div>
+                        <div class="col-12 mt-2">
+                            <small class="text-muted d-block"><i class="bi bi-info-circle me-1"></i>Ajusta los colores
+                                para que combinen con el logo de tu marca. El color de la navegación y pie de página
+                                controlan específicamente la cabecera y el bloque inferior.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ── IDENTIDAD ── -->
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
@@ -147,24 +190,24 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                         <div class="col-md-7">
                             <label class="form-label small fw-bold text-muted">Nombre Comercial *</label>
                             <input type="text" name="name" id="inp-name" class="form-control form-control-lg" required
-                                value="<?= htmlspecialchars($company['name'] ?? '') ?>" placeholder="Ej: Laser Studio">
+                                value="<?= htmlspecialchars($company['name'] ?? '') ?>" placeholder="Ej: Laser Studio" <?= $disabledAttr ?>>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label small fw-bold text-muted">RUC / NIT</label>
                             <input type="text" name="ruc_nit" class="form-control"
                                 value="<?= htmlspecialchars($company['ruc_nit'] ?? '') ?>"
-                                placeholder="001234567890001">
+                                placeholder="001234567890001" <?= $disabledAttr ?>>
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-bold text-muted">Eslogan</label>
                             <input type="text" name="eslogan" id="inp-eslogan" class="form-control"
                                 value="<?= htmlspecialchars($company['eslogan'] ?? '') ?>"
-                                placeholder="Precisión y creatividad en cada corte">
+                                placeholder="Precisión y creatividad en cada corte" <?= $disabledAttr ?>>
                         </div>
                         <div class="col-12">
                             <label class="form-label small fw-bold text-muted">Descripción / Sobre Nosotros</label>
                             <textarea name="description" class="form-control" rows="3"
-                                placeholder="Descripción para la página Sobre Nosotros..."><?= htmlspecialchars($company['description'] ?? '') ?></textarea>
+                                placeholder="Descripción para la página Sobre Nosotros..." <?= $disabledAttr ?>><?= htmlspecialchars($company['description'] ?? '') ?></textarea>
                         </div>
                     </div>
                 </div>
@@ -183,7 +226,7 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                                 <span class="input-group-text bg-success text-white border-0"><i
                                         class="bi bi-whatsapp"></i></span>
                                 <input type="text" name="phone_whatsapp" id="inp-wa" class="form-control"
-                                    value="<?= htmlspecialchars($wa) ?>" placeholder="593987654321">
+                                    value="<?= htmlspecialchars($wa) ?>" placeholder="593987654321" <?= $disabledAttr ?>>
                             </div>
                             <div class="form-text">Solo números con código de país. Ej: <code>593987654321</code></div>
                         </div>
@@ -193,19 +236,19 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                                 <span class="input-group-text"><i class="bi bi-envelope"></i></span>
                                 <input type="email" name="email" class="form-control"
                                     value="<?= htmlspecialchars($company['email'] ?? '') ?>"
-                                    placeholder="contacto@empresa.com">
+                                    placeholder="contacto@empresa.com" <?= $disabledAttr ?>>
                             </div>
                         </div>
                         <div class="col-md-7">
                             <label class="form-label small fw-bold text-muted">Dirección</label>
                             <input type="text" name="address" id="inp-addr" class="form-control"
                                 value="<?= htmlspecialchars($company['address'] ?? '') ?>"
-                                placeholder="Av. Principal 123">
+                                placeholder="Av. Principal 123" <?= $disabledAttr ?>>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label small fw-bold text-muted">Ciudad</label>
                             <input type="text" name="ciudad" id="inp-city" class="form-control"
-                                value="<?= htmlspecialchars($company['ciudad'] ?? '') ?>" placeholder="Guayaquil">
+                                value="<?= htmlspecialchars($company['ciudad'] ?? '') ?>" placeholder="Guayaquil" <?= $disabledAttr ?>>
                         </div>
                     </div>
                 </div>
@@ -274,7 +317,7 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                         <div class="col-12">
                             <label class="form-label small fw-bold text-muted">Términos y Condiciones</label>
                             <textarea name="terms_conditions" id="inp-terms" class="form-control" rows="2"
-                                placeholder="Ej: Cotización válida por 48 horas."><?= htmlspecialchars($company['terms_conditions'] ?? '') ?></textarea>
+                                placeholder="Ej: Cotización válida por 48 horas." <?= $disabledAttr ?>><?= htmlspecialchars($company['terms_conditions'] ?? '') ?></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-muted">Mensaje de Agradecimiento</label>
@@ -420,32 +463,74 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
                         Aplicación". El puerto suele ser 587 con TLS.
                     </div>
                 </div>
-            </div>
 
-            <!-- ── GOOGLE MAPS ── -->
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
-                    <h6 class="fw-bold"><i class="bi bi-geo-alt me-2 text-danger"></i>Mapa de Ubicación</h6>
-                    <small class="text-muted">Pega el <code>&lt;iframe&gt;</code> de Google Maps (Compartir → Insertar
-                        mapa).</small>
-                </div>
-                <div class="card-body px-4 pb-4">
-                    <textarea name="maps_embed" class="form-control font-monospace" rows="3"
-                        placeholder='&lt;iframe src="https://www.google.com/maps/embed?..."&gt;&lt;/iframe&gt;'><?= htmlspecialchars($company['maps_embed'] ?? '') ?></textarea>
-                    <?php if (!empty($company['maps_embed'])): ?>
-                        <div class="mt-3 rounded-3 overflow-hidden border" style="height:180px">
-                            <?= $company['maps_embed'] ?>
+                <!-- ── CONFIGURACIÓN DE TELEGRAM (BOT) ── -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div
+                        class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-telegram me-2 text-info"></i>Notificaciones por
+                            Telegram</h6>
+                        <div class="form-check form-switch mt-1">
+                            <input class="form-check-input" type="checkbox" role="switch" name="telegram_active"
+                                id="telegram_active" value="1" <?= (!empty($company['telegram_active']) && $company['telegram_active']) ? 'checked' : '' ?>>
+                            <label class="form-check-label small fw-bold text-muted" for="telegram_active">Activar
+                                Bot</label>
                         </div>
-                    <?php endif; ?>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <p class="small text-muted mb-3">
+                            Recibe alertas instantáneas cada vez que un cliente genere una cotización. Crea tu bot en
+                            <strong>@BotFather</strong> y obtén tu Chat ID en <strong>@userinfobot</strong>.
+                        </p>
+                        <div class="row g-3">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-bold text-muted">Telegram Bot Token</label>
+                                <input type="text" name="telegram_token" id="telegram_token" class="form-control"
+                                    value="<?= htmlspecialchars($company['telegram_token'] ?? '') ?>"
+                                    placeholder="Ej: 123456789:ABCdefGHIjklMNOpqrSTUvwxYZ">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold text-muted">Chat ID (Administrador)</label>
+                                <input type="text" name="telegram_chat_id" id="telegram_chat_id" class="form-control"
+                                    value="<?= htmlspecialchars($company['telegram_chat_id'] ?? '') ?>"
+                                    placeholder="Ej: 987654321">
+                                <div class="mt-2 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill"
+                                        onclick="testTelegram()" <?= $disabledAttr ?>>
+                                        <i class="bi bi-send-check me-1"></i>Probar Conexión
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- ── GUARDAR ── -->
-            <div class="d-grid mb-4">
-                <button type="submit" class="btn btn-primary py-3 fw-bold rounded-3 fs-5">
-                    <i class="bi bi-check-circle me-2"></i>Guardar Todo el Perfil
-                </button>
-            </div>
+                <!-- ── GOOGLE MAPS ── -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                        <h6 class="fw-bold"><i class="bi bi-geo-alt me-2 text-danger"></i>Mapa de Ubicación</h6>
+                        <small class="text-muted">Pega el <code>&lt;iframe&gt;</code> de Google Maps (Compartir →
+                            Insertar
+                            mapa).</small>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <textarea name="maps_embed" class="form-control font-monospace" rows="3"
+                            placeholder='&lt;iframe src="https://www.google.com/maps/embed?..."&gt;&lt;/iframe&gt;'
+                            <?= $disabledAttr ?>><?= htmlspecialchars($company['maps_embed'] ?? '') ?></textarea>
+                        <?php if (!empty($company['maps_embed'])): ?>
+                            <div class="mt-3 rounded-3 overflow-hidden border" style="height:180px">
+                                <?= $company['maps_embed'] ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- ── GUARDAR ── -->
+                <div class="d-grid mb-4">
+                    <button type="submit" class="btn btn-primary py-3 fw-bold rounded-3 fs-5" <?= $disabledAttr ?>>
+                        <i class="bi bi-check-circle me-2"></i>Guardar Todo el Perfil
+                    </button>
+                </div>
         </form>
     </div><!-- /col-lg-7 -->
 
@@ -799,5 +884,43 @@ $isImgBBLogo = !empty($company['logo_url']) && str_starts_with($company['logo_ur
     function togglePass(id) {
         const p = document.getElementById(id);
         if (p) p.type = p.type === 'password' ? 'text' : 'password';
+    }
+
+    function testTelegram() {
+        const token = document.getElementById('telegram_token').value.trim();
+        const chatId = document.getElementById('telegram_chat_id').value.trim();
+
+        if (!token || !chatId) {
+            Swal.fire('Atención', 'Por favor, ingresa el Token y el Chat ID en los campos antes de hacer la prueba.', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Probando Bot...',
+            text: 'Conectando con la API de Telegram...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const formData = new FormData();
+        formData.append('token', token);
+        formData.append('chat_id', chatId);
+
+        fetch(APP_URL + 'admin/test_telegram', {
+            method: 'POST',
+            body: formData
+        })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    Swal.fire('¡Éxito!', res.message, 'success');
+                } else {
+                    Swal.fire('Atención', res.message, 'warning');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire('Error', 'No se pudo conectar con el servidor local para realizar la prueba.', 'error');
+            });
     }
 </script>
