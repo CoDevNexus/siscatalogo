@@ -80,7 +80,7 @@ siscatalogo/
 ---
 *Diseñado para potenciar la productividad y la identidad visual de tu marca.*
 
-
+## 📸 Diseños del sistema
 ![Demo1](\demo\demo5.png)
 ![Demo2](\demo\demo8.png)
 ![Demo3](\demo\demo1.png)
